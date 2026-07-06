@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>The Forexecutioner</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Forexecutioner">
+<meta name="theme-color" content="#17151A">
+<style>
+:root{
+  --bg:#17151A; --surface:#201D24; --surface2:#2A2630; --line:#3A3542;
+  --ink:#EDE6DA; --muted:#8E8797; --crimson:#C22A3A; --crimsondim:#7E1F2B;
+  --gold:#D9A441; --green:#5FA36A; --greendim:#27402C;
+  --display:'Futura-CondensedExtraBold','HelveticaNeue-CondensedBold','Arial Narrow',system-ui,sans-serif;
+  --body:-apple-system,'SF Pro Text','Helvetica Neue',system-ui,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--body);overscroll-behavior-y:none}
+h1,h2,h3,.disp{font-family:var(--display);letter-spacing:1px;text-transform:uppercase;font-weight:800;margin:0}
+#header{position:sticky;top:0;z-index:40;background:linear-gradient(var(--bg) 78%,transparent);padding:calc(env(safe-area-inset-top) + 12px) 16px 10px;cursor:pointer}
+.hrow{display:flex;justify-content:space-between;align-items:baseline;max-width:480px;margin:0 auto}
+.brand{font-family:var(--display);font-size:20px;color:var(--crimson);letter-spacing:1px;text-transform:uppercase}
+.rank{color:var(--gold);font-size:12px;font-family:var(--display);letter-spacing:1.5px;text-transform:uppercase}
+.xpnum{font-family:var(--display);font-size:22px;text-align:right}
+.xpnum small{font-size:12px;color:var(--muted)}
+.streak{color:var(--muted);font-size:11px;text-align:right}
+.bar{max-width:480px;margin:8px auto 0}
+.track{height:5px;border-radius:3px;background:var(--surface2);overflow:hidden}
+.fill{height:100%;background:var(--gold);border-radius:3px;transition:width .3s}
+.tonext{color:var(--muted);font-size:10px;margin-top:3px;text-align:right}
+#app{max-width:480px;margin:0 auto;padding:6px 16px 120px}
+.label{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:16px 0 6px;font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.cardtitle{font-family:var(--display);font-size:17px;letter-spacing:1px;text-transform:uppercase}
+.sub{color:var(--muted);font-size:12px;margin-top:2px}
+input[type=text],textarea{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:10px;color:var(--ink);padding:11px 12px;font-size:16px;font-family:var(--body);outline:none;margin-bottom:8px;-webkit-appearance:none}
+input::placeholder{color:var(--muted);opacity:.7}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 12px;border-radius:20px;font-size:13px;border:1px solid var(--line);color:var(--muted);cursor:pointer;user-select:none}
+.chip.on{border-color:var(--crimson);background:var(--crimsondim);color:var(--ink)}
+.chip.on.ok{border-color:var(--green);background:var(--greendim)}
+.scale{display:flex;gap:5px;flex-wrap:wrap}
+.scale div{width:30px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:15px;cursor:pointer;border:1px solid var(--line);color:var(--muted)}
+.scale div.on{border-color:var(--crimson);background:var(--crimsondim);color:var(--ink)}
+.cta{width:100%;margin-top:16px;padding:15px;border-radius:12px;border:none;cursor:pointer;background:var(--crimson);color:#fff;font-family:var(--display);font-size:18px;letter-spacing:2px;text-transform:uppercase}
+.cta.done{background:var(--surface2);color:var(--muted)}
+.cta.ghost{background:transparent;border:1px solid var(--line);color:var(--muted);font-size:14px;padding:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tally{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 12px;cursor:pointer;user-select:none;transition:transform .06s}
+.tally:active{transform:scale(.96)}
+.trow{display:flex;justify-content:space-between;align-items:baseline}
+.tname{font-family:var(--display);font-size:16px;letter-spacing:1px;text-transform:uppercase}
+.tcount{font-family:var(--display);font-size:26px}
+.thint{color:var(--muted);font-size:11px;margin-top:2px}
+.meter{display:flex;gap:4px;margin-top:8px}
+.meter div{flex:1;height:10px;border-radius:4px;background:var(--surface2);border:1px solid var(--line)}
+.meter div.on{background:var(--crimson)}
+.steprow{display:flex;justify-content:space-between;align-items:center;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none}
+.steprow:last-child{border-bottom:none}
+.stepmark{font-family:var(--display);font-size:18px;width:34px;text-align:center}
+.sinrow{display:flex;justify-content:space-between;align-items:center;padding:7px 0}
+.yn{display:flex;gap:6px}
+.qrow{display:flex;align-items:center;gap:10px;padding:9px 0;cursor:pointer;border-bottom:1px solid var(--line)}
+.qrow:last-child{border-bottom:none}
+.qbox{width:26px;height:26px;border-radius:7px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--green);font-size:16px;flex:none}
+.qbox.on{border-color:var(--green);background:var(--greendim)}
+#tabbar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:50}
+#tabbar .inner{display:flex;max-width:480px;margin:0 auto}
+#tabbar .tab{flex:1;text-align:center;padding:14px 0 12px;cursor:pointer;font-family:var(--display);font-size:14px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);border-top:2px solid transparent}
+#tabbar .tab.on{color:var(--crimson);border-top-color:var(--crimson)}
+#floats{position:fixed;bottom:130px;left:0;right:0;pointer-events:none;text-align:center;z-index:55}
+.float{display:inline-block;margin:0 4px;color:var(--gold);font-family:var(--display);font-size:22px;animation:fxfloat .9s ease-out forwards}
+@keyframes fxfloat{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-46px)}}
+#toast{position:fixed;bottom:92px;left:16px;right:16px;z-index:56;display:flex;justify-content:center;pointer-events:none}
+#toast div{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:13px;max-width:420px}
+#modal{position:fixed;inset:0;background:rgba(15,13,17,.94);z-index:60;overflow-y:auto;padding:calc(env(safe-area-inset-top) + 24px) 18px 40px;display:none}
+#modal .inner{max-width:480px;margin:0 auto}
+.rrow{display:flex;justify-content:space-between;padding:5px 0;font-size:14px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:8px}
+.cal div{aspect-ratio:1;border-radius:8px;background:var(--surface2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}
+.cal div.closed{background:var(--crimsondim);border-color:var(--crimson);color:var(--ink)}
+.cal div.today{border-color:var(--gold)}
+.cal div.head{background:transparent;border:none;font-size:9px}
+.statline{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--line)}
+.statline:last-child{border-bottom:none}
+svg text{font-family:var(--body)}
+details{margin-top:10px}
+summary{color:var(--muted);font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:1px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="header" onclick="openRules()"></div>
+<div id="app"></div>
+<div id="floats"></div>
+<div id="toast"></div>
+<div id="modal" onclick="closeRules(event)"><div class="inner" id="modalinner" onclick="event.stopPropagation()"></div></div>
+<div id="tabbar"><div class="inner" id="tabinner"></div></div>
+
+<script>
+"use strict";
+// ================= CONSTANTS =================
+const RANKS=[["Squire of the Spread",0],["Apprentice Headsman",500],["Pin Puller",1500],["Monster Hunter",3000],["Vampire Slayer",5000],["Grinder of Souls",8000],["The Executioner's Hand",12000],["THE FOREXECUTIONER",20000]];
+const TALLIES=[
+ {key:"dials",label:"Dial",xp:1,hint:"every swing counts"},
+ {key:"dm",label:"DM Convo",xp:10,hint:"decision maker reached"},
+ {key:"pitch",label:"30-Sec Pitch",xp:10,hint:"3 problems, no begging"},
+ {key:"grinder",label:"Emotional Grinder",xp:15,hint:"sat in their pain"},
+ {key:"pin",label:"Pulled the Pin",xp:15,hint:"clean disqualify. a win."},
+ {key:"meeting",label:"Meeting (no beg)",xp:20,hint:"booked via process"}];
+const STEPS=["Pattern interrupt","30-second pitch","Push-away #1","Is it important?","Push-away #2","Emotional grinder","Crabwalk check","Conversational questioning","Vampire invite","Last chance to bail"];
+const STEP_MARKS=["\u2014","\u2717","~","\u2713"];
+const STEP_COLORS=["var(--muted)","var(--crimson)","var(--gold)","var(--green)"];
+const BOSSES=["Loyalty Wraith","Priority Phantom","Price Ogre","Document Dodger","The Ghost"];
+const DRIVERS=["Hurry Up","Be Perfect","Please Me","Try Hard","Be Strong"];
+const CARD_DRIVERS=[...DRIVERS,"Stayed Adult"];
+const NC_STATES=["Relaxed","Comfortable","Alert","Eager","Energized","Excited","Powerful"];
+const PERMISSIONS=["take my time","make mistakes","rely on myself","finish + succeed","feel + be open"];
+const DRIVER_NOTES={"Hurry Up":"racing the pitch, talking over silence \u2192 permission to take your time","Be Perfect":"script paralysis, avoiding dials \u2192 permission to make mistakes","Please Me":"THE BEGGING + CRABWALK ENGINE \u2192 permission to rely on yourself","Try Hard":"grinding with no closes \u2192 permission to finish and succeed","Be Strong":"armor up, zero curiosity \u2192 permission to feel and be open"};
+
+// ================= STATE =================
+const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;};
+const emptyDay=()=>({dawn:{gratitudes:["","",""],thought:"",driver:null,justif:"",martian:"",permission:null,ncStates:[],quests:["","",""],firstDial:"",complete:false},
+ tallies:{dials:0,dm:0,pitch:0,grinder:0,pin:0,meeting:0,nos:0,noBonuses:0},cards:[],
+ dusk:{questsDone:[false,false,false],behaviourRank:0,feel:0,cycle:null,cycleBroke:false,hungryFor:"",reclaim:"",correlation:"",closed:false,lowDay:false}});
+const emptyCard=()=>({company:"",steps:Array(10).fill(0),enthusiasm:0,sins:{crabwalk:null,begged:null,iFocused:null},boss:null,bossResult:null,driver:null,bait:"",ben:"",fact:"",oneThing:"",time:""});
+
+function load(key,fallback){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback;}catch(e){return fallback;}}
+function save(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){toast("Storage error. Export your data.");}}
+
+let meta=load("fx-meta",{bankedXP:0,streak:0,lastClosed:null});
+let day=Object.assign(emptyDay(),load("fx-day-"+todayKey(),{}));
+// deep-merge safety for older shapes
+day.dawn=Object.assign(emptyDay().dawn,day.dawn||{});
+day.tallies=Object.assign(emptyDay().tallies,day.tallies||{});
+day.dusk=Object.assign(emptyDay().dusk,day.dusk||{});
+day.cards=day.cards||[];
+let card=load("fx-carddraft",emptyCard());
+let tab=load("fx-tab","hunt");
+
+const persistDay=()=>save("fx-day-"+todayKey(),day);
+const persistCard=()=>save("fx-carddraft",card);
+
+// ================= XP ENGINE =================
+function dayXP(d){
+ const t=d.tallies;
+ let xp=t.dials*1+t.dm*10+t.pitch*10+t.grinder*15+t.pin*15+t.meeting*20+t.nos*1+t.noBonuses*30;
+ if(d.dawn.complete)xp+=10;
+ const qd=d.dusk.questsDone.filter(Boolean).length;
+ xp+=qd*15; if(qd===3)xp+=25;
+ for(const c of d.cards){xp+=5; if(c.bossResult==="grinded")xp+=20; if(c.steps.filter(s=>s>0).length===10)xp+=25;}
+ if(d.dusk.cycleBroke)xp+=20;
+ return xp;
+}
+const rankFor=xp=>{let r=RANKS[0];for(const rk of RANKS)if(xp>=rk[1])r=rk;return r;};
+const nextRank=xp=>RANKS.find(r=>r[1]>xp)||null;
+
+// ================= HELPERS =================
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let toastTimer=null;
+function toast(msg){$("toast").innerHTML=`<div>${esc(msg)}</div>`;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$("toast").innerHTML="",2200);}
+function floatXP(label){const el=document.createElement("div");el.className="float";el.textContent=label;$("floats").appendChild(el);setTimeout(()=>el.remove(),900);}
+function buzz(){if(navigator.vibrate)navigator.vibrate(10);}
+
+// ================= RENDER: HEADER + TABS =================
+function renderHeader(){
+ const live=day.dusk.closed?0:dayXP(day);
+ const total=meta.bankedXP+live;
+ const [rname,rbase]=rankFor(total);
+ const nxt=nextRank(total);
+ let bar="";
+ if(nxt){const pct=Math.min(100,((total-rbase)/(nxt[1]-rbase))*100);
+  bar=`<div class="bar"><div class="track"><div class="fill" style="width:${pct}%"></div></div><div class="tonext">${(nxt[1]-total).toLocaleString()} XP to ${esc(nxt[0])}</div></div>`;}
+ $("header").innerHTML=`<div class="hrow"><div><div class="brand">The Forexecutioner</div><div class="rank">${esc(rname)}</div></div>
+  <div><div class="xpnum">${total.toLocaleString()} <small>XP</small></div>
+  <div class="streak">${meta.streak>0?`\uD83D\uDD25 ${meta.streak}-day streak`:"start a streak"}</div></div></div>${bar}`;
+}
+const TABS=[["dawn","Dawn"],["hunt","Hunt"],["card","Card"],["dusk","Dusk"],["hist","Ledger"]];
+function renderTabs(){$("tabinner").innerHTML=TABS.map(([k,l])=>`<div class="tab ${tab===k?"on":""}" onclick="setTab('${k}')">${l}</div>`).join("");}
+function setTab(k){tab=k;save("fx-tab",k);render();window.scrollTo(0,0);}
+
+// ================= GENERIC UI BUILDERS =================
+function chips(opts,current,handler,multi){
+ return `<div class="chips">`+opts.map(o=>{
+  const on=multi?(current||[]).includes(o):current===o;
+  return `<div class="chip ${on?"on":""}" onclick="${handler}('${o.replace(/'/g,"\\'")}')" >${esc(o)}</div>`;}).join("")+`</div>`;
+}
+function scale(val,handler,max=10){
+ let h=`<div class="scale">`;
+ for(let n=1;n<=max;n++)h+=`<div class="${val>=n?"on":""}" onclick="${handler}(${n})">${n}</div>`;
+ return h+`</div>`;
+}
+function ynRow(label,val,handler){
+ return `<div class="sinrow"><div style="font-size:14px">${esc(label)}</div><div class="yn">
+  <div class="chip ${val==="Y"?"on":""}" onclick="${handler}('Y')">Y</div>
+  <div class="chip ${val==="N"?"on ok":""}" onclick="${handler}('N')">N</div></div></div>`;
+}
+
+// ================= DAWN =================
+function renderDawn(){
+ const dw=day.dawn;
+ return `
+ <div class="label">Three gratitudes — specific beats generic</div>
+ ${dw.gratitudes.map((g,i)=>`<input type="text" placeholder="Gratitude ${i+1}" value="${esc(g)}" onchange="day.dawn.gratitudes[${i}]=this.value;persistDay()">`).join("")}
+
+ <div class="card"><div class="cardtitle">The Tape Check</div>
+  <div class="sub">Meininger's four elements. Pinpoint the feeling, find the driver and its justifications, grant the permission.</div>
+  <div class="label">The negative thought, word for word</div>
+  <input type="text" placeholder="What's the tape saying?" value="${esc(dw.thought)}" onchange="day.dawn.thought=this.value;persistDay()">
+  <div class="label">The driver pushing it</div>
+  ${chips(DRIVERS,dw.driver,"setDawnDriver")}
+  <div class="label">The justifications the tape uses to sound reasonable</div>
+  <input type="text" placeholder="'I don't have forever', 'I'm just being realistic'..." value="${esc(dw.justif)}" onchange="day.dawn.justif=this.value;persistDay()">
+  <div class="label">The Martian view — facts only, zero interpretation</div>
+  <input type="text" placeholder="What would a Martian actually see?" value="${esc(dw.martian)}" onchange="day.dawn.martian=this.value;persistDay()">
+  <div class="label">The permission I grant myself today</div>
+  ${chips(PERMISSIONS,dw.permission,"setDawnPerm")}
+ </div>
+
+ <div class="card"><div class="cardtitle">Natural Child Ignition</div>
+  <div class="sub">The productive state is all seven at once. Tap what's true right now.</div>
+  <div style="margin-top:10px">${chips(NC_STATES,dw.ncStates,"toggleNC",true)}</div>
+ </div>
+
+ <div class="label">Today's three quests — behaviours only, 100% yours</div>
+ ${dw.quests.map((q,i)=>`<input type="text" placeholder="Quest ${i+1} · e.g. 2 flawless pattern interrupts" value="${esc(q)}" onchange="day.dawn.quests[${i}]=this.value;persistDay()">`).join("")}
+
+ <div class="label">"When" is the only relevant question. First dial at:</div>
+ <input type="text" placeholder="e.g. 8:30" value="${esc(dw.firstDial)}" onchange="day.dawn.firstDial=this.value;persistDay()">
+
+ <button class="cta ${dw.complete?"done":""}" onclick="completeDawn()">${dw.complete?"Axe is sharp \u2713":"Sharpen the axe (+10)"}</button>`;
+}
+function setDawnDriver(v){day.dawn.driver=day.dawn.driver===v?null:v;persistDay();render();}
+function setDawnPerm(v){day.dawn.permission=day.dawn.permission===v?null:v;persistDay();render();}
+function toggleNC(v){const a=day.dawn.ncStates;day.dawn.ncStates=a.includes(v)?a.filter(x=>x!==v):[...a,v];persistDay();render();}
+function completeDawn(){if(day.dawn.complete)return;day.dawn.complete=true;persistDay();buzz();floatXP("+10");toast("Dawn Ritual complete. +10 XP. Hit the phones.");render();}
+
+// ================= HUNT =================
+function renderHunt(){
+ const t=day.tallies;
+ const noProg=t.nos%10;
+ const quests=day.dawn.quests.filter(Boolean);
+ return `
+ <div class="grid2">${TALLIES.map(b=>`
+  <div class="tally" onclick="bump('${b.key}',${b.xp})">
+   <div class="trow"><div class="tname">${b.label}</div><div class="tcount">${t[b.key]}</div></div>
+   <div class="thint">${b.hint} · +${b.xp}</div></div>`).join("")}
+ </div>
+ <div class="card" style="margin-top:12px;cursor:pointer;user-select:none" onclick="bump('nos',1)">
+  <div class="trow"><div class="tname">Collect a NO</div><div class="tcount">${t.nos}</div></div>
+  <div class="thint">go for 10 in a row · +1 each · +30 when the axe meter fills</div>
+  <div class="meter">${Array.from({length:10},(_,i)=>`<div class="${i<noProg?"on":""}"></div>`).join("")}</div>
+ </div>
+ <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:14px">Today's hunt XP: <span style="color:var(--gold);font-family:var(--display);font-size:16px">${dayXP(day)}</span></div>
+ ${quests.length?`<div class="card" style="margin-top:12px"><div class="label" style="margin-top:0">Today's quests</div>${quests.map(q=>`<div style="font-size:13px;padding:3px 0">\u2022 ${esc(q)}</div>`).join("")}</div>`:""}`;
+}
+function bump(key,xp){
+ day.tallies[key]+=1;buzz();
+ if(key==="nos"&&day.tallies.nos%10===0){day.tallies.noBonuses+=1;floatXP("+30 \u00B7 10 NO'S");toast("Axe meter full. +30 XP. Reset the count, keep swinging.");}
+ else floatXP("+"+xp);
+ persistDay();render();
+}
+
+// ================= CARD =================
+function renderCard(){
+ return `
+ <input type="text" placeholder="Company / contact (optional)" value="${esc(card.company)}" onchange="card.company=this.value;persistCard()">
+ <div class="label">The Gauntlet — tap to cycle: \u2014 \u2717 ~ \u2713</div>
+ <div class="card">${STEPS.map((s,i)=>`
+  <div class="steprow" onclick="cycleStep(${i})">
+   <div style="font-size:14px;color:${card.steps[i]?"var(--ink)":"var(--muted)"}">${i+1}. ${s}</div>
+   <div class="stepmark" style="color:${STEP_COLORS[card.steps[i]]}">${STEP_MARKS[card.steps[i]]}</div></div>`).join("")}
+ </div>
+ <div class="label">Pattern interrupt enthusiasm</div>
+ ${scale(card.enthusiasm,"setEnth")}
+ <div class="label">The three sins</div>
+ <div class="card">
+  ${ynRow("Crabwalked?",card.sins.crabwalk,"sinCrab")}
+  ${ynRow("Begged?",card.sins.begged,"sinBeg")}
+  ${ynRow('"I"-focused?',card.sins.iFocused,"sinI")}
+ </div>
+ <div class="label">Boss fight</div>
+ ${chips(BOSSES,card.boss,"setBoss")}
+ ${card.boss?`<div style="margin-top:8px">${chips(["grinded","folded"],card.bossResult,"setBossResult")}</div>`:""}
+ <div class="label">The driver that got hooked</div>
+ ${chips(CARD_DRIVERS,card.driver,"setCardDriver")}
+ <details><summary>Deep autopsy (optional)</summary>
+  <div class="label">The bait — what pulled the tape?</div>
+  <input type="text" value="${esc(card.bait)}" onchange="card.bait=this.value;persistCard()" placeholder="what they said or did">
+  <div class="label">What would Ben have said?</div>
+  <input type="text" value="${esc(card.ben)}" onchange="card.ben=this.value;persistCard()" placeholder="the line you'll steal">
+  <div class="label">Martian fact — what a microphone would have recorded</div>
+  <input type="text" value="${esc(card.fact)}" onchange="card.fact=this.value;persistCard()" placeholder="facts, not story">
+ </details>
+ <div class="label">The One Thing — on my very next dial I will:</div>
+ <input type="text" placeholder="One behaviour. Next dial. Not tomorrow." value="${esc(card.oneThing)}" onchange="card.oneThing=this.value;persistCard()">
+ <button class="cta" onclick="fileCard()">File the card (+5)</button>
+ ${day.cards.length?`<div class="card" style="margin-top:14px"><div class="label" style="margin-top:0">Filed today (${day.cards.length})</div>
+  ${day.cards.map((c,i)=>`<div style="font-size:13px;color:var(--muted);padding:5px 0;${i<day.cards.length-1?"border-bottom:1px solid var(--line)":""}">
+   <span style="color:var(--ink)">${esc(c.time)}</span> ${esc(c.company||"call")} ${c.boss?`\u00B7 ${esc(c.boss)} (${esc(c.bossResult||"?")})`:""}
+   <div style="color:var(--gold);font-size:12px">\u2192 ${esc(c.oneThing)}</div></div>`).join("")}</div>`:""}`;
+}
+function cycleStep(i){card.steps[i]=(card.steps[i]+1)%4;persistCard();render();}
+function setEnth(n){card.enthusiasm=card.enthusiasm===n?0:n;persistCard();render();}
+function sinCrab(v){card.sins.crabwalk=card.sins.crabwalk===v?null:v;persistCard();render();}
+function sinBeg(v){card.sins.begged=card.sins.begged===v?null:v;persistCard();render();}
+function sinI(v){card.sins.iFocused=card.sins.iFocused===v?null:v;persistCard();render();}
+function setBoss(v){card.boss=card.boss===v?null:v;persistCard();render();}
+function setBossResult(v){card.bossResult=card.bossResult===v?null:v;persistCard();render();}
+function setCardDriver(v){card.driver=card.driver===v?null:v;persistCard();render();}
+function fileCard(){
+ if(!card.oneThing.trim()){toast("The One Thing is the whole point. One behaviour, next dial.");return;}
+ card.time=new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+ day.cards.push(card);
+ const bonus=5+(card.bossResult==="grinded"?20:0)+(card.steps.filter(s=>s>0).length===10?25:0);
+ persistDay();buzz();floatXP("+"+bonus);toast(`Card filed. +${bonus} XP. Back on the phones.`);
+ card=emptyCard();persistCard();render();
+}
+
+// ================= DUSK =================
+function renderDusk(){
+ const dk=day.dusk;const quests=day.dawn.quests;
+ return `
+ <div class="label">Did I do what I said I would do?</div>
+ <div class="card">${quests.map((q,i)=>`
+  <div class="qrow" onclick="toggleQuest(${i})">
+   <div class="qbox ${dk.questsDone[i]?"on":""}">${dk.questsDone[i]?"\u2713":""}</div>
+   <div style="font-size:14px;color:${q?"var(--ink)":"var(--muted)"}">${esc(q)||`Quest ${i+1} (not set)`}</div></div>`).join("")}
+ </div>
+ <div class="label">Behaviour rank — on what I said I'd do, nothing else</div>
+ ${scale(dk.behaviourRank,"setBRank")}
+ <div class="card" style="margin-top:16px"><div class="cardtitle">Powerless Cycle Patrol</div>
+  <div class="sub">The YouTube hole is the cycle. Did it get you today?</div>
+  <div style="margin-top:10px" class="yn">
+   <div class="chip ${dk.cycle==="Y"?"on":""}" onclick="setCycle('Y')">Y</div>
+   <div class="chip ${dk.cycle==="N"?"on ok":""}" onclick="setCycle('N')">N</div></div>
+  ${dk.cycle==="Y"?`
+   <div class="label">What was I actually hungry for?</div>
+   <input type="text" placeholder="interest? connection? power? rest?" value="${esc(dk.hungryFor)}" onchange="day.dusk.hungryFor=this.value;persistDay()">
+   <div class="label">How I take my power back</div>
+   <input type="text" placeholder="permit yourself to feel powerful. redecide." value="${esc(dk.reclaim)}" onchange="day.dusk.reclaim=this.value;persistDay()">
+   <div class="chip ${dk.cycleBroke?"on":""}" style="display:inline-block;margin-top:10px" onclick="toggleBroke()">I broke the cycle in the moment (+20)</div>`:""}
+ </div>
+ <div class="label">How do I feel about myself right now?</div>
+ ${scale(dk.feel,"setFeel")}
+ <div style="color:var(--muted);font-size:12px;margin-top:8px">Island score (roles stripped away): <span style="color:var(--gold);font-family:var(--display);font-size:16px">9</span> — that one doesn't move.</div>
+ <div class="label">The correlation I notice between behaviours and how I feel</div>
+ <input type="text" placeholder="behaviours done vs. feeling — what moved together?" value="${esc(dk.correlation)}" onchange="day.dusk.correlation=this.value;persistDay()">
+ <div class="card" style="margin-top:16px;text-align:center">
+  <div style="color:var(--muted);font-size:12px">XP earned today</div>
+  <div style="font-family:var(--display);font-size:40px;color:var(--gold)">${dayXP(day)}</div>
+  <div style="color:var(--muted);font-size:12px">${day.tallies.dials} dials \u00B7 ${day.tallies.dm} DM convos \u00B7 ${day.tallies.pitch} pitches \u00B7 ${day.cards.length} cards</div>
+ </div>
+ <button class="cta ${dk.closed?"done":""}" onclick="closeDay(false)">${dk.closed?"Day closed \u2713":"Close the day \u00B7 bank the XP"}</button>
+ ${dk.closed?"":`<button class="cta ghost" onclick="closeDay(true)">Low-day close — bank + keep streak, skip the rest</button>
+ <div style="color:var(--muted);font-size:11px;text-align:center;margin-top:8px">A closed bad day beats an unclosed good one. The streak measures showing up to the mirror, not performance.</div>`}`;
+}
+function toggleQuest(i){day.dusk.questsDone[i]=!day.dusk.questsDone[i];persistDay();render();}
+function setBRank(n){day.dusk.behaviourRank=day.dusk.behaviourRank===n?0:n;persistDay();render();}
+function setFeel(n){day.dusk.feel=day.dusk.feel===n?0:n;persistDay();render();}
+function setCycle(v){day.dusk.cycle=day.dusk.cycle===v?null:v;persistDay();render();}
+function toggleBroke(){day.dusk.cycleBroke=!day.dusk.cycleBroke;if(day.dusk.cycleBroke){floatXP("+20");buzz();}persistDay();render();}
+function closeDay(low){
+ if(day.dusk.closed)return;
+ const earned=dayXP(day);
+ const y=new Date();y.setDate(y.getDate()-1);
+ const yKey=`${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,"0")}-${String(y.getDate()).padStart(2,"0")}`;
+ meta.streak=meta.lastClosed===yKey?meta.streak+1:1;
+ meta.bankedXP+=earned;meta.lastClosed=todayKey();
+ day.dusk.closed=true;day.dusk.lowDay=!!low;
+ save("fx-meta",meta);persistDay();buzz();
+ toast(`Day closed. +${earned} XP banked. Streak: ${meta.streak}.${low?" Low day counted. Showing up is the win.":""}`);
+ render();
+}
+
+// ================= LEDGER (HISTORY) =================
+function allDays(){
+ const out=[];
+ for(let i=0;i<localStorage.length;i++){
+  const k=localStorage.key(i);
+  if(k&&k.startsWith("fx-day-")){try{out.push({date:k.slice(7),d:JSON.parse(localStorage.getItem(k))});}catch(e){}}
+ }
+ return out.sort((a,b)=>a.date<b.date?-1:1);
+}
+function corrChart(days){
+ const pts=days.filter(x=>x.d.dusk&&x.d.dusk.closed&&!x.d.dusk.lowDay&&x.d.dusk.behaviourRank>0&&x.d.dusk.feel>0).slice(-30);
+ if(pts.length<2)return `<div class="sub">Close 2+ full days with behaviour + feel ranked and the correlation line appears here. This is Ben's experiment, made visible.</div>`;
+ const W=440,H=170,P=26;
+ const x=i=>P+i*(W-2*P)/(pts.length-1);
+ const y=v=>H-P-(v-1)*(H-2*P)/9;
+ const line=(get,color)=>`<polyline fill="none" stroke="${color}" stroke-width="2.5" points="${pts.map((p,i)=>`${x(i)},${y(get(p))}`).join(" ")}"/>`+
+  pts.map((p,i)=>`<circle cx="${x(i)}" cy="${y(get(p))}" r="3.5" fill="${color}"/>`).join("");
+ return `<svg viewBox="0 0 ${W} ${H}" style="width:100%">
+  ${[1,5,10].map(v=>`<line x1="${P}" x2="${W-P}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="4" y="${y(v)+4}" font-size="10" fill="var(--muted)">${v}</text>`).join("")}
+  ${line(p=>p.d.dusk.behaviourRank,"#C22A3A")}
+  ${line(p=>p.d.dusk.feel,"#D9A441")}
+ </svg>
+ <div style="font-size:11px;color:var(--muted)"><span style="color:#C22A3A">\u25CF</span> behaviour rank &nbsp; <span style="color:#D9A441">\u25CF</span> how I feel about myself — watch them move together.</div>`;
+}
+function renderHist(){
+ const days=allDays();
+ const cards=days.flatMap(x=>(x.d.cards||[]));
+ // boss analytics
+ const bossStats=BOSSES.map(b=>{
+  const f=cards.filter(c=>c.boss===b);
+  const g=f.filter(c=>c.bossResult==="grinded").length;
+  return {b,n:f.length,g};
+ }).filter(s=>s.n>0).sort((a,b)=>b.n-a.n);
+ // driver frequency (cards + dawn)
+ const dcount={};
+ cards.forEach(c=>{if(c.driver&&c.driver!=="Stayed Adult")dcount[c.driver]=(dcount[c.driver]||0)+1;});
+ days.forEach(x=>{if(x.d.dawn&&x.d.dawn.driver)dcount[x.d.dawn.driver]=(dcount[x.d.dawn.driver]||0)+1;});
+ const dsorted=Object.entries(dcount).sort((a,b)=>b[1]-a[1]);
+ const dmax=dsorted.length?dsorted[0][1]:1;
+ // weekly summary
+ const last7=days.slice(-7);
+ const sum=k=>last7.reduce((a,x)=>a+((x.d.tallies||{})[k]||0),0);
+ const closed7=last7.filter(x=>x.d.dusk&&x.d.dusk.closed);
+ const avg=(get)=>{const v=closed7.map(get).filter(n=>n>0);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):"-";};
+ const cards7=last7.reduce((a,x)=>a+(x.d.cards||[]).length,0);
+ const summaryText=`FORExECUTIONER WEEK: ${sum("dials")} dials, ${sum("dm")} DM convos, ${sum("pitch")} pitches, ${sum("meeting")} meetings, ${sum("pin")} pins pulled, ${cards7} cards filed. Avg behaviour rank ${avg(x=>x.d.dusk.behaviourRank)}, avg feel ${avg(x=>x.d.dusk.feel)}. Top boss: ${bossStats[0]?bossStats[0].b:"none yet"}. Top driver: ${dsorted[0]?dsorted[0][0]:"none yet"}.`;
+ // streak calendar
+ const now=new Date();const yr=now.getFullYear(),mo=now.getMonth();
+ const first=new Date(yr,mo,1).getDay();const dim=new Date(yr,mo+1,0).getDate();
+ const closedSet=new Set(days.filter(x=>x.d.dusk&&x.d.dusk.closed).map(x=>x.date));
+ let cal=["S","M","T","W","T","F","S"].map(h=>`<div class="head">${h}</div>`).join("");
+ for(let i=0;i<first;i++)cal+="<div style='visibility:hidden'></div>";
+ for(let dd=1;dd<=dim;dd++){
+  const key=`${yr}-${String(mo+1).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;
+  cal+=`<div class="${closedSet.has(key)?"closed":""} ${key===todayKey()?"today":""}">${dd}</div>`;
+ }
+ return `
+ <div class="card"><div class="cardtitle">The Correlation</div>${corrChart(days)}</div>
+ <div class="card"><div class="cardtitle">Boss Ledger</div>
+  ${bossStats.length?bossStats.map(s=>`<div class="statline"><span>${esc(s.b)}</span><span>${s.n} fights \u00B7 <span style="color:${s.g/s.n>=.5?"var(--green)":"var(--crimson)"}">${Math.round(100*s.g/s.n)}% grinded</span></span></div>`).join(""):`<div class="sub">File cards with boss fights and the ledger fills in.</div>`}
+ </div>
+ <div class="card"><div class="cardtitle">Driver Frequency</div>
+  <div class="sub">The tape that shows up most is your training camp.</div>
+  ${dsorted.length?dsorted.map(([d,n])=>`<div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>${esc(d)}</span><span style="color:var(--muted)">${n}</span></div>
+   <div class="track" style="margin-top:3px"><div class="fill" style="width:${Math.round(100*n/dmax)}%;background:var(--crimson)"></div></div>
+   <div style="font-size:10px;color:var(--muted);margin-top:2px">${esc(DRIVER_NOTES[d]||"")}</div></div>`).join(""):`<div class="sub" style="margin-top:8px">No drivers logged yet.</div>`}
+ </div>
+ <div class="card"><div class="cardtitle">This Month</div><div class="cal">${cal}</div></div>
+ <div class="card"><div class="cardtitle">Weekly Review</div>
+  <div style="font-size:13px;margin-top:8px;line-height:1.5">${esc(summaryText)}</div>
+  <button class="cta ghost" onclick="copySummary()">Copy for Coaching Club</button>
+ </div>
+ <div class="card"><div class="cardtitle">Your Data</div>
+  <button class="cta ghost" onclick="exportData()">Export everything (JSON)</button>
+  <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
+  <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
+ </div>`;
+}
+let lastSummary="";
+function copySummary(){
+ const days=allDays();const last7=days.slice(-7);
+ const el=document.querySelector("#app .card:nth-last-child(2) div");
+ const txt=el?el.textContent:"";
+ navigator.clipboard&&navigator.clipboard.writeText(txt).then(()=>toast("Copied. Bring it to Ben."),()=>toast("Copy failed — long-press the text instead."));
+}
+function exportData(){
+ const data={};
+ for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("fx-"))data[k]=localStorage.getItem(k);}
+ const blob=new Blob([JSON.stringify(data,null,1)],{type:"application/json"});
+ const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`forexecutioner-backup-${todayKey()}.json`;a.click();
+ toast("Backup downloaded. Your data is never trapped.");
+}
+function importData(input){
+ const f=input.files[0];if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{try{
+  const data=JSON.parse(r.result);
+  Object.entries(data).forEach(([k,v])=>{if(k.startsWith("fx-"))localStorage.setItem(k,v);});
+  meta=load("fx-meta",meta);day=Object.assign(emptyDay(),load("fx-day-"+todayKey(),{}));
+  day.dawn=Object.assign(emptyDay().dawn,day.dawn||{});day.tallies=Object.assign(emptyDay().tallies,day.tallies||{});day.dusk=Object.assign(emptyDay().dusk,day.dusk||{});day.cards=day.cards||[];
+  toast("Backup restored.");render();
+ }catch(e){toast("That file didn't parse. Wrong backup?");}};
+ r.readAsText(f);
+}
+
+// ================= RULES MODAL =================
+function openRules(){
+ const total=meta.bankedXP+(day.dusk.closed?0:dayXP(day));
+ const [rname]=rankFor(total);
+ $("modalinner").innerHTML=`
+  <h2 style="font-size:24px">Rules of the Game</h2>
+  <div class="sub" style="margin-bottom:16px">XP for behaviours. Never outcomes. Tap outside to close.</div>
+  <div class="card"><div class="label" style="margin-top:0">Rank ladder</div>
+   ${RANKS.map(([n,xp])=>`<div class="rrow" style="color:${n===rname?"var(--gold)":"var(--ink)"};font-weight:${n===rname?"700":"400"}"><span>${esc(n)}${n===rname?" \u2190 you":""}</span><span style="font-family:var(--display)">${xp.toLocaleString()}</span></div>`).join("")}
+  </div>
+  <div class="card"><div class="label" style="margin-top:0">XP legend</div>
+   ${[["Dial",1],["DM conversation",10],["30-sec pitch",10],["Emotional grinder",15],["Pin pulled (clean disqualify)",15],["Meeting without begging",20],["Each NO",1],["10 NO's in a row",30],["Card filed",5],["Full gauntlet on a card",25],["Boss grinded",20],["Dawn Ritual",10],["Each quest done",15],["All 3 quests bonus",25],["Powerless cycle broken",20]].map(([l,x])=>`<div class="rrow"><span>${l}</span><span style="color:var(--crimson);font-family:var(--display)">+${x}</span></div>`).join("")}
+  </div>
+  <div class="card"><div class="label" style="margin-top:0">The five drivers + their permissions</div>
+   ${DRIVERS.map(d=>`<div style="padding:6px 0"><span style="color:var(--crimson);font-family:var(--display);letter-spacing:1px">${d}</span><div style="color:var(--muted);font-size:12px">${DRIVER_NOTES[d]}</div></div>`).join("")}
+  </div>
+  <div style="color:var(--muted);font-size:12px;font-style:italic;text-align:center;margin-top:10px">You can fail in your roles. You can never fail at being you.</div>`;
+ $("modal").style.display="block";
+}
+function closeRules(e){$("modal").style.display="none";}
+
+// ================= ROOT RENDER =================
+function render(){
+ renderHeader();renderTabs();
+ $("app").innerHTML=tab==="dawn"?renderDawn():tab==="hunt"?renderHunt():tab==="card"?renderCard():tab==="dusk"?renderDusk():renderHist();
+}
+render();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
+</script>
+</body>
+</html>
