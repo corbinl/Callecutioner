@@ -215,8 +215,8 @@ function renderDawn(){
 
  <div class="card"><div class="cardtitle">The Tape Check</div>
   <div class="sub">Meininger's four elements. Pinpoint the feeling, find the driver and its justifications, grant the permission.</div>
-  <div class="label">The negative thought, word for word</div>
-  <input type="text" placeholder="What's the tape saying?" value="${esc(dw.thought)}" onchange="day.dawn.thought=this.value;persistDay()">
+  <div class="label">The tape, word for word — dig past the feeling to the because-clause</div>
+  <input type="text" placeholder="not 'I don't want to dial' — the sentence AFTER it: '...because ____'" value="${esc(dw.thought)}" onchange="day.dawn.thought=this.value;persistDay()">
   <div class="label">The driver pushing it</div>
   ${chips(DRIVERS,dw.driver,"setDawnDriver")}
   <div class="label">The justifications the tape uses to sound reasonable</div>
@@ -225,6 +225,7 @@ function renderDawn(){
   <input type="text" placeholder="What would a Martian actually see?" value="${esc(dw.martian)}" onchange="day.dawn.martian=this.value;persistDay()">
   <div class="label">The permission I grant myself today</div>
   ${chips(PERMISSIONS,dw.permission,"setDawnPerm")}
+  <div class="sub" style="margin-top:10px">Tape unclear? Write "unclear", grant a permission, dial. The check never gates the phone.</div>
  </div>
 
  <div class="card"><div class="cardtitle">Natural Child Ignition</div>
@@ -557,7 +558,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
-  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2</div>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.1</div>
  </div>`;
 }
 
