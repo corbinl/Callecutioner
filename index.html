@@ -34,10 +34,10 @@ h1,h2,h3,.disp{font-family:var(--display);letter-spacing:1px;text-transform:uppe
 .fill{height:100%;background:var(--gold);border-radius:3px;transition:width .3s}
 .tonext{color:var(--muted);font-size:10px;margin-top:3px;text-align:right}
 #app{max-width:480px;margin:0 auto;padding:6px 16px 120px}
-.label{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:16px 0 6px;font-weight:600}
+.label{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;font-weight:600}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .cardtitle{font-family:var(--display);font-size:17px;letter-spacing:1px;text-transform:uppercase}
-.sub{color:var(--muted);font-size:12px;margin-top:2px}
+.sub{color:var(--muted);font-size:12px;margin:2px 0 9px}
 input[type=text],textarea{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:10px;color:var(--ink);padding:11px 12px;font-size:16px;font-family:var(--body);outline:none;margin-bottom:8px;-webkit-appearance:none}
 input::placeholder{color:var(--muted);opacity:.7}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -582,7 +582,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
-  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.3</div>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.4</div>
  </div>`;
 }
 
