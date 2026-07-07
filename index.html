@@ -214,17 +214,29 @@ function renderDawn(){
  ${dw.gratitudes.map((g,i)=>`<input type="text" placeholder="Gratitude ${i+1}" value="${esc(g)}" onchange="day.dawn.gratitudes[${i}]=this.value;persistDay()">`).join("")}
 
  <div class="card"><div class="cardtitle">The Tape Check</div>
-  <div class="sub">Meininger's four elements. Pinpoint the feeling, find the driver and its justifications, grant the permission.</div>
-  <div class="label">The tape, word for word — dig past the feeling to the because-clause</div>
-  <input type="text" placeholder="not 'I don't want to dial' — the sentence AFTER it: '...because ____'" value="${esc(dw.thought)}" onchange="day.dawn.thought=this.value;persistDay()">
-  <div class="label">The driver pushing it</div>
+  <div class="sub">Meininger's four elements plus the Martian reality check. Walk them top to bottom. Each rung sets up the next.</div>
+
+  <div class="label">1. The tape, word for word</div>
+  <div class="sub">Name the feeling first ("I don't want to dial"). Then finish it: "...because ____". That because-clause is the tape.</div>
+  <input type="text" placeholder="...because I'll mess it up and look like a fool" value="${esc(dw.thought)}" onchange="day.dawn.thought=this.value;persistDay()">
+
+  <div class="label">2. The driver pushing the tape</div>
+  <div class="sub">Which of the 5 old commands makes you write a tape like that? Tap one, then read its tell.</div>
   ${chips(DRIVERS,dw.driver,"setDawnDriver")}
-  <div class="label">The justifications the tape uses to sound reasonable</div>
-  <input type="text" placeholder="'I don't have forever', 'I'm just being realistic'..." value="${esc(dw.justif)}" onchange="day.dawn.justif=this.value;persistDay()">
-  <div class="label">The Martian view — facts only, zero interpretation</div>
-  <input type="text" placeholder="What would a Martian actually see?" value="${esc(dw.martian)}" onchange="day.dawn.martian=this.value;persistDay()">
-  <div class="label">The permission I grant myself today</div>
+  ${dw.driver?`<div class="sub" style="margin-top:6px">${esc(DRIVER_NOTES[dw.driver]||"")}</div>`:""}
+
+  <div class="label">3. The justifications it hides in</div>
+  <div class="sub">The responsible-sounding excuses that happen to delay the dial. If it sounds smart and keeps you off the phone, it's a justification.</div>
+  <input type="text" placeholder="not ready, need to practice, too tired, better list first..." value="${esc(dw.justif)}" onchange="day.dawn.justif=this.value;persistDay()">
+
+  <div class="label">4. The Martian view</div>
+  <div class="sub">Facts only, zero story. What would a Martian with no opinion actually see and hear?</div>
+  <input type="text" placeholder="a person picks up, hears a voice, says words back" value="${esc(dw.martian)}" onchange="day.dawn.martian=this.value;persistDay()">
+
+  <div class="label">5. The permission I grant myself</div>
+  <div class="sub">The counter-command that disarms the driver. Step 2's tell names the matching one.</div>
   ${chips(PERMISSIONS,dw.permission,"setDawnPerm")}
+
   <div class="sub" style="margin-top:10px">Tape unclear? Write "unclear", grant a permission, dial. The check never gates the phone.</div>
  </div>
 
@@ -234,7 +246,8 @@ function renderDawn(){
  </div>
 
  <div class="label">Today's three quests — behaviours only, 100% yours</div>
- ${dw.quests.map((q,i)=>`<input type="text" placeholder="Quest ${i+1} · e.g. 2 flawless pattern interrupts" value="${esc(q)}" onchange="day.dawn.quests[${i}]=this.value;persistDay()">`).join("")}
+ <div class="sub">Write each as one behaviour you can honestly tick yes or no. You'll check them off tonight at Dusk.</div>
+ ${dw.quests.map((q,i)=>`<input type="text" placeholder="Quest ${i+1} · e.g. throw a pattern interrupt on every pickup" value="${esc(q)}" onchange="day.dawn.quests[${i}]=this.value;persistDay()">`).join("")}
 
  <div class="label">"When" is the only relevant question. First dial at:</div>
  <input type="text" placeholder="e.g. 8:30" value="${esc(dw.firstDial)}" onchange="day.dawn.firstDial=this.value;persistDay()">
@@ -345,7 +358,7 @@ function renderDusk(){
  <div class="card">${quests.map((q,i)=>`
   <div class="qrow" onclick="toggleQuest(${i})">
    <div class="qbox ${dk.questsDone[i]?"on":""}">${dk.questsDone[i]?"\u2713":""}</div>
-   <div style="font-size:14px;color:${q?"var(--ink)":"var(--muted)"}">${esc(q)||`Quest ${i+1} (not set)`}</div></div>`).join("")}
+   <div style="font-size:14px;color:${q?"var(--ink)":"var(--muted)"}"><span style="color:var(--muted)">${i+1}.</span> ${esc(q)||`quest ${i+1} not set`}</div></div>`).join("")}
  </div>
  <div class="label">Behaviour rank — on what I said I'd do, nothing else</div>
  ${scale(dk.behaviourRank,"setBRank")}
@@ -558,7 +571,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
-  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.1</div>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.2</div>
  </div>`;
 }
 
