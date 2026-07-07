@@ -113,26 +113,28 @@ const TALLIES=[
  {key:"grinder",label:"Emotional Grinder",xp:15,hint:"sat in their pain"},
  {key:"pin",label:"Pulled the Pin",xp:15,hint:"clean disqualify. a win."},
  {key:"meeting",label:"Meeting (no beg)",xp:20,hint:"booked via process"}];
-const STEPS=["Pattern interrupt","30-second pitch","Push-away #1","Is it important?","Push-away #2","Emotional grinder","Crabwalk check","Conversational questioning","Vampire invite","Last chance to bail"];
+const STEPS=["Pattern interrupt","30-second pitch","Push-away #1","Is it important?","Push-away #2","Emotional grinder","Crabwalk check","Conversational questioning","Vampire invite","Last chance to bail","Ask for a referral"];
 const STEP_MARKS=["\u2014","\u2717","~","\u2713"];
 const STEP_COLORS=["var(--muted)","var(--crimson)","var(--gold)","var(--green)"];
 const MEETING_STEPS=["Omega (set the frame)","Mock presentation","Future state","Pain discovery questions","The five pointers","Selling the proposal","The 3.5 alternatives","Next steps","Pulling the pin","Ending the meeting"];
+const STEP_HINTS=["Break the script running in their head. Not 'how are you today'.","Three problems you fix, fast. Make them recognise themselves.","Hand them the exit. Takes the pressure off and makes them lean in.","Ask if the problem even matters to them. Let them qualify or drop out.","Push away again. Lean in twice and they are worth your time.","Make the cost of the problem concrete. Feeling, not a spec sheet.","Did you dodge sideways to avoid a hard question? Ask it straight.","Real curiosity, not an interrogation. A conversation.","Invite them to the next step. They have to want in.","One more exit before booking. Only the willing survive it.","Isn't there anyone you know as lucky or unlucky as you who doesn't have an incredible trader? Someone great, maybe a competitor of yours?"];
+const MEETING_HINTS=["Set the frame up front. This is how the meeting will run.","Show them the shape of a solution without pitching yet.","Paint where they could be, against where they are now.","Dig for the real pain, in their own words.","Walk the five qualification gates below.","Let the proposal sell off their pain, not your features.","Frame their options honestly, including doing nothing.","Nail concrete next steps before anyone leaves.","Be willing to disqualify. Pull the pin if it isn't real.","Close cleanly. No begging, no chasing."];
 const POINTERS=["Problems we fix","They accept it's a problem","They convinced ME","Can afford it","How they decide"];
 const CALL_TYPES=["Cold call","Sales meeting","Referral / inbound","Follow-up"];
 const stepsFor=type=>type==="Sales meeting"?MEETING_STEPS:STEPS;
 const BOSSES=["Loyalty Wraith","Priority Phantom","Price Ogre","Document Dodger","The Ghost"];
 const DRIVERS=["Hurry Up","Be Perfect","Please Me","Try Hard","Be Strong"];
-const CARD_DRIVERS=[...DRIVERS,"Stayed Adult"];
+const CARD_DRIVERS=[...DRIVERS,"Natural Child","Nurturing Parent","Adult"];
 const NC_STATES=["Relaxed","Comfortable","Alert","Eager","Energized","Excited","Powerful"];
 const PERMISSIONS=["take my time","make mistakes","rely on myself","finish + succeed","feel + be open"];
-const DRIVER_NOTES={"Hurry Up":"racing the pitch, talking over silence \u2192 permission to take your time","Be Perfect":"script paralysis, avoiding dials \u2192 permission to make mistakes","Please Me":"THE BEGGING + CRABWALK ENGINE \u2192 permission to rely on yourself","Try Hard":"grinding with no closes \u2192 permission to finish and succeed","Be Strong":"armor up, zero curiosity \u2192 permission to feel and be open"};
+const DRIVER_NOTES={"Hurry Up":"racing the pitch, talking over silence \u2192 permission to take your time","Be Perfect":"script paralysis, avoiding dials \u2192 permission to make mistakes","Please Me":"THE BEGGING + CRABWALK ENGINE \u2192 permission to rely on yourself","Try Hard":"grinding with no closes \u2192 permission to finish and succeed","Be Strong":"armor up, zero curiosity \u2192 permission to feel and be open","Natural Child":"authentic, curious, playful. your pattern interrupt and real enthusiasm live here","Nurturing Parent":"genuinely helping without needing them to like you. care, not begging","Adult":"facts, questions, disqualifying. here and now, no old tape running"};
 
 // ================= STATE =================
 const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;};
 const emptyDay=()=>({dawn:{gratitudes:["","",""],thought:"",driver:null,justif:"",martian:"",permission:null,ncStates:[],quests:["","",""],firstDial:"",complete:false},
  tallies:{dials:0,dm:0,pitch:0,grinder:0,pin:0,meeting:0,nos:0,noBonuses:0},cards:[],
  dusk:{questsDone:[false,false,false],behaviourRank:0,feel:0,cycle:null,cycleBroke:false,hungryFor:"",reclaim:"",correlation:"",closed:false,lowDay:false}});
-const emptyCard=()=>({type:"Cold call",company:"",steps:Array(10).fill(0),pointers:[],enthusiasm:0,sins:{crabwalk:null,begged:null,iFocused:null},boss:null,bossResult:null,driver:null,bait:"",ben:"",fact:"",oneThing:"",time:""});
+const emptyCard=()=>({type:"Cold call",company:"",steps:Array(11).fill(0),pointers:[],enthusiasm:0,sins:{crabwalk:null,begged:null,iFocused:null},boss:null,bossResult:null,driver:null,bait:"",ben:"",fact:"",oneThing:"",time:""});
 
 function load(key,fallback){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback;}catch(e){return fallback;}}
 function save(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){toast("Storage error. Export your data.");}}
@@ -293,28 +295,37 @@ function renderCard(){
  <input type="text" placeholder="Company / contact (optional)" value="${esc(card.company)}" onchange="card.company=this.value;persistCard()">
  <div class="label">Call type</div>
  ${chips(CALL_TYPES,card.type,"setCardType")}
+ <div class="label">${isMeeting?"Opening energy":"Pattern interrupt enthusiasm"}</div>
+ ${scale(card.enthusiasm,"setEnth")}
  <div class="label">${isMeeting?"The Meeting Anatomy":"The Gauntlet"} — tap to cycle: \u2014 \u2717 ~ \u2713</div>
+ <div class="sub" style="margin-bottom:4px"><span style="color:var(--muted)">—</span> not reached · <span style="color:var(--crimson)">✗</span> missed · <span style="color:var(--gold)">~</span> wobbly · <span style="color:var(--green)">✓</span> nailed</div>
  <div class="card">${steps.map((s,i)=>`
   <div class="steprow" onclick="cycleStep(${i})">
    <div style="font-size:14px;color:${card.steps[i]?"var(--ink)":"var(--muted)"}">${i+1}. ${s}</div>
-   <div class="stepmark" style="color:${STEP_COLORS[card.steps[i]]}">${STEP_MARKS[card.steps[i]]}</div></div>`).join("")}
+   <div class="stepmark" style="color:${STEP_COLORS[card.steps[i]||0]}">${STEP_MARKS[card.steps[i]||0]}</div></div>`).join("")}
  </div>
- ${isMeeting?`<div class="label">The five pointers — which gates did you actually clear?</div>
+ <details><summary>What each step means</summary>
+  <div class="sub" style="margin:6px 0">Plain-language paraphrase. Correct any that don't match Ben's teaching.</div>
+  ${steps.map((s,i)=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--line)"><span style="color:var(--ink)">${i+1}. ${s}</span><div style="color:var(--muted);margin-top:2px">${(isMeeting?MEETING_HINTS:STEP_HINTS)[i]||""}</div></div>`).join("")}
+ </details>
+ ${isMeeting?`<div class="label">The five pointers. Which gates did you actually clear?</div>
  ${chips(POINTERS,card.pointers,"togglePointer",true)}
  <div class="sub" style="margin-top:6px">Unclear pointers are where ghosts come from.</div>`:""}
- <div class="label">${isMeeting?"Opening energy":"Pattern interrupt enthusiasm"}</div>
- ${scale(card.enthusiasm,"setEnth")}
  <div class="label">The three sins</div>
  <div class="card">
   ${ynRow("Crabwalked?",card.sins.crabwalk,"sinCrab")}
   ${ynRow("Begged?",card.sins.begged,"sinBeg")}
   ${ynRow('"I"-focused?',card.sins.iFocused,"sinI")}
  </div>
- <div class="label">Boss fight</div>
+ <div class="label">Boss fight. Which boss showed up?</div>
  ${chips(BOSSES,card.boss,"setBoss")}
- ${card.boss?`<div style="margin-top:8px">${chips(["grinded","folded"],card.bossResult,"setBossResult")}</div>`:""}
- <div class="label">The driver that got hooked</div>
+ ${card.boss?`<div class="label">Did YOU grind it or fold?</div>
+ <div class="sub">grinded = you pushed into it and made them defend it. folded = you backed off. This is about your behaviour, not theirs.</div>
+ <div style="margin-top:8px">${chips(["grinded","folded"],card.bossResult,"setBossResult")}</div>`:""}
+ <div class="label">Where did I run the call from?</div>
+ <div class="sub">Did a driver hook you (Adapted Child), or did you hold a healthy place? Tap one, then read its tell.</div>
  ${chips(CARD_DRIVERS,card.driver,"setCardDriver")}
+ ${card.driver?`<div class="sub" style="margin-top:6px">${esc(DRIVER_NOTES[card.driver]||"")}</div>`:""}
  <details><summary>Deep autopsy (optional)</summary>
   <div class="label">The bait — what pulled the tape?</div>
   <input type="text" value="${esc(card.bait)}" onchange="card.bait=this.value;persistCard()" placeholder="what they said or did">
@@ -331,8 +342,8 @@ function renderCard(){
    <span style="color:var(--ink)">${esc(c.time)}</span> ${esc(c.company||"call")} ${c.boss?`\u00B7 ${esc(c.boss)} (${esc(c.bossResult||"?")})`:""}
    <div style="color:var(--gold);font-size:12px">\u2192 ${esc(c.oneThing)}</div></div>`).join("")}</div>`:""}`;
 }
-function cycleStep(i){card.steps[i]=(card.steps[i]+1)%4;persistCard();render();}
-function setCardType(v){if(card.type===v)return;card.type=v;card.steps=Array(10).fill(0);card.pointers=[];persistCard();render();}
+function cycleStep(i){card.steps[i]=((card.steps[i]||0)+1)%4;persistCard();render();}
+function setCardType(v){if(card.type===v)return;card.type=v;card.steps=Array(stepsFor(v).length).fill(0);card.pointers=[];persistCard();render();}
 function togglePointer(v){card.pointers=card.pointers.includes(v)?card.pointers.filter(x=>x!==v):[...card.pointers,v];persistCard();render();}
 function setEnth(n){card.enthusiasm=card.enthusiasm===n?0:n;persistCard();render();}
 function sinCrab(v){card.sins.crabwalk=card.sins.crabwalk===v?null:v;persistCard();render();}
@@ -518,7 +529,7 @@ function renderHist(){
  const cardsAll=allCardsChrono(days).map(x=>x.c);
  const bossStats=BOSSES.map(b=>{const f=cardsAll.filter(c=>c.boss===b);const g=f.filter(c=>c.bossResult==="grinded").length;return{b,n:f.length,g};}).filter(s=>s.n>0).sort((a,b)=>b.n-a.n);
  const dcount={};
- cardsAll.forEach(c=>{if(c.driver&&c.driver!=="Stayed Adult")dcount[c.driver]=(dcount[c.driver]||0)+1;});
+ cardsAll.forEach(c=>{if(c.driver&&DRIVERS.includes(c.driver))dcount[c.driver]=(dcount[c.driver]||0)+1;});
  days.forEach(x=>{if(x.d.dawn&&x.d.dawn.driver)dcount[x.d.dawn.driver]=(dcount[x.d.dawn.driver]||0)+1;});
  const dsorted=Object.entries(dcount).sort((a,b)=>b[1]-a[1]);
  const dmax=dsorted.length?dsorted[0][1]:1;
@@ -571,7 +582,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
-  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.2</div>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.3</div>
  </div>`;
 }
 

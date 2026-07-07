@@ -31,13 +31,13 @@ Deployed via GitHub Pages from repo root: https://corbinl.github.io/Callecutione
 
 - `fx-meta`: `{bankedXP, streak, lastClosed}` — lastClosed is a YYYY-MM-DD string; streak increments only if yesterday was closed.
 - `fx-day-YYYY-MM-DD`: one object per day: `{dawn:{gratitudes[3], thought, driver, justif, martian, permission, ncStates[], quests[3], firstDial, complete}, tallies:{dials,dm,pitch,grinder,pin,meeting,nos,noBonuses}, cards:[], dusk:{questsDone[3], behaviourRank, feel, cycle, cycleBroke, hungryFor, reclaim, correlation, closed, lowDay}}`
-- Card shape: `{type, company, steps[10], pointers[], enthusiasm, sins:{crabwalk,begged,iFocused}, boss, bossResult, driver, bait, ben, fact, oneThing, time}`. Cards without `type` are legacy = "Cold call".
+- Card shape: `{type, company, steps[11], pointers[], enthusiasm, sins:{crabwalk,begged,iFocused}, boss, bossResult, driver, bait, ben, fact, oneThing, time}`. Cold-call cards use 11 steps (incl. referral); meetings use the 10 meeting-anatomy steps. Render sizes the steps array by type (`setCardType`) and guards missing indices (`card.steps[i]||0`), so legacy 10-step cards stay valid and just show "not reached" for step 11. `driver` on a card is now "where I ran the call from": one of the 5 drivers (hooked = Adapted Child) OR a healthy place (Natural Child / Nurturing Parent / Adult). Cards without `type` are legacy = "Cold call".
 - `fx-carddraft`: in-progress card. `fx-tab`: last open tab.
 - NEVER break backward compatibility with existing stored days. Merge-with-defaults on load (see top of script).
 
 ## Methodology constants (source of truth)
 
-**Cold call Gauntlet (10 steps, Dennehy, verified from Corbin's notebook):** Pattern interrupt → 30-second pitch (3 problems) → Push-away #1 → Is it important? → Push-away #2 → Emotional grinder → Crabwalk check → Conversational questioning → Vampire invite → Last chance to bail.
+**Cold call Gauntlet (11 steps, Dennehy, from Corbin's notebook):** Pattern interrupt → 30-second pitch (3 problems) → Push-away #1 → Is it important? → Push-away #2 → Emotional grinder → Crabwalk check → Conversational questioning → Vampire invite → Last chance to bail → Ask for a referral. Steps 1-10 verified from the notebook; step 11 (referral) added by Corbin. The in-app "What each step means" glossary hints (STEP_HINTS / MEETING_HINTS) are plain-language paraphrase, not verified Dennehy wording; Corbin can correct any.
 
 **Meeting anatomy (10 steps):** Omega → Mock presentation → Future state → Pain discovery questions → Five pointers → Selling the proposal → The 3.5 alternatives → Next steps → Pulling the pin → Ending the meeting. ⚠️ ORDER IS A RECONSTRUCTION from notebook fragments, not verified against Dennehy's teaching. Corbin will confirm/correct after a Coaching Club session. When he does, update MEETING_STEPS.
 
@@ -74,4 +74,4 @@ bg #17151A · surface #201D24 · surface2 #2A2630 · line #3A3542 · ink #EDE6DA
 
 ## Current state
 
-v1.2.1 deployed. Feature-complete for cold calls + meetings. Known open items: (1) meeting step order pending Ben verification, (2) possible future: low-day Dusk variant, day-detail polish. Both wait for lived friction.
+v1.2.3 deployed. Feature-complete for cold calls + meetings. Recent clarity passes: guided Tape Check with driver tells + binary-quest coaching + numbered Dusk quests (v1.2.2); Card clarity pass — mark legend, "what each step means" glossary, boss-fight split into two questions, referral step 11, "where I ran the call from" field (v1.2.3). Known open items: (1) meeting step order + gauntlet glossary hints pending Ben verification, (2) possible future: low-day Dusk variant, day-detail polish. Both wait for lived friction.
