@@ -128,6 +128,7 @@ const CARD_DRIVERS=[...DRIVERS,"Natural Child","Nurturing Parent","Adult"];
 const NC_STATES=["Relaxed","Comfortable","Alert","Eager","Energized","Excited","Powerful"];
 const PERMISSIONS=["take my time","make mistakes","rely on myself","finish + succeed","feel + be open"];
 const DRIVER_NOTES={"Hurry Up":"racing the pitch, talking over silence \u2192 permission to take your time","Be Perfect":"script paralysis, avoiding dials \u2192 permission to make mistakes","Please Me":"THE BEGGING + CRABWALK ENGINE \u2192 permission to rely on yourself","Try Hard":"grinding with no closes \u2192 permission to finish and succeed","Be Strong":"armor up, zero curiosity \u2192 permission to feel and be open","Natural Child":"authentic, curious, playful. your pattern interrupt and real enthusiasm live here","Nurturing Parent":"genuinely helping without needing them to like you. care, not begging","Adult":"facts, questions, disqualifying. here and now, no old tape running"};
+const DRIVER_GUIDE={"Hurry Up":{cmd:"Go faster, don't waste time",dial:"racing the pitch, talking over the silence",perm:"take my time"},"Be Perfect":{cmd:"Don't screw up, get it exactly right",dial:"I'll fumble the script and sound stupid",perm:"make mistakes"},"Please Me":{cmd:"Don't be a bother, keep them happy, be liked",dial:"I'll annoy them, I'm interrupting, they'll think I'm a nuisance",perm:"rely on myself"},"Try Hard":{cmd:"Effort is what matters, straining is virtue",dial:"grinding hard, never actually closing",perm:"finish + succeed"},"Be Strong":{cmd:"Don't show anything, armor up",dial:"zero curiosity, robotic, no feeling",perm:"feel + be open"}};
 
 // ================= STATE =================
 const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;};
@@ -326,6 +327,15 @@ function renderCard(){
  <div class="sub">Did a driver hook you (Adapted Child), or did you hold a healthy place? Tap one, then read its tell.</div>
  ${chips(CARD_DRIVERS,card.driver,"setCardDriver")}
  ${card.driver?`<div class="sub" style="margin-top:6px">${esc(DRIVER_NOTES[card.driver]||"")}</div>`:""}
+ <details><summary>What do these mean?</summary>
+  <div class="sub" style="margin:6px 0">The 5 drivers hook you (Adapted Child). Paraphrase, correct as needed.</div>
+  ${DRIVERS.map(d=>`<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--line)">
+   <span style="color:var(--crimson);font-family:var(--display);letter-spacing:1px">${d}</span>
+   <div style="color:var(--muted);margin-top:2px">obeys "${DRIVER_GUIDE[d].cmd}"</div>
+   <div style="color:var(--muted)">on a dial: ${DRIVER_GUIDE[d].dial}</div>
+   <div style="color:var(--green)">antidote: ${DRIVER_GUIDE[d].perm}</div></div>`).join("")}
+  <div class="sub" style="margin-top:8px">Or you held a healthy place. Natural Child: authentic, curious. Nurturing Parent: help without needing to be liked. Adult: facts, questions, no old tape.</div>
+ </details>
  <details><summary>Deep autopsy (optional)</summary>
   <div class="label">The bait — what pulled the tape?</div>
   <input type="text" value="${esc(card.bait)}" onchange="card.bait=this.value;persistCard()" placeholder="what they said or did">
@@ -582,7 +592,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
-  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.4</div>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.5</div>
  </div>`;
 }
 
