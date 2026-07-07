@@ -116,6 +116,10 @@ const TALLIES=[
 const STEPS=["Pattern interrupt","30-second pitch","Push-away #1","Is it important?","Push-away #2","Emotional grinder","Crabwalk check","Conversational questioning","Vampire invite","Last chance to bail"];
 const STEP_MARKS=["\u2014","\u2717","~","\u2713"];
 const STEP_COLORS=["var(--muted)","var(--crimson)","var(--gold)","var(--green)"];
+const MEETING_STEPS=["Omega (set the frame)","Mock presentation","Future state","Pain discovery questions","The five pointers","Selling the proposal","The 3.5 alternatives","Next steps","Pulling the pin","Ending the meeting"];
+const POINTERS=["Problems we fix","They accept it's a problem","They convinced ME","Can afford it","How they decide"];
+const CALL_TYPES=["Cold call","Sales meeting","Referral / inbound","Follow-up"];
+const stepsFor=type=>type==="Sales meeting"?MEETING_STEPS:STEPS;
 const BOSSES=["Loyalty Wraith","Priority Phantom","Price Ogre","Document Dodger","The Ghost"];
 const DRIVERS=["Hurry Up","Be Perfect","Please Me","Try Hard","Be Strong"];
 const CARD_DRIVERS=[...DRIVERS,"Stayed Adult"];
@@ -128,7 +132,7 @@ const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.get
 const emptyDay=()=>({dawn:{gratitudes:["","",""],thought:"",driver:null,justif:"",martian:"",permission:null,ncStates:[],quests:["","",""],firstDial:"",complete:false},
  tallies:{dials:0,dm:0,pitch:0,grinder:0,pin:0,meeting:0,nos:0,noBonuses:0},cards:[],
  dusk:{questsDone:[false,false,false],behaviourRank:0,feel:0,cycle:null,cycleBroke:false,hungryFor:"",reclaim:"",correlation:"",closed:false,lowDay:false}});
-const emptyCard=()=>({company:"",steps:Array(10).fill(0),enthusiasm:0,sins:{crabwalk:null,begged:null,iFocused:null},boss:null,bossResult:null,driver:null,bait:"",ben:"",fact:"",oneThing:"",time:""});
+const emptyCard=()=>({type:"Cold call",company:"",steps:Array(10).fill(0),pointers:[],enthusiasm:0,sins:{crabwalk:null,begged:null,iFocused:null},boss:null,bossResult:null,driver:null,bait:"",ben:"",fact:"",oneThing:"",time:""});
 
 function load(key,fallback){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback;}catch(e){return fallback;}}
 function save(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){toast("Storage error. Export your data.");}}
@@ -269,15 +273,22 @@ function bump(key,xp){
 
 // ================= CARD =================
 function renderCard(){
+ const isMeeting=card.type==="Sales meeting";
+ const steps=stepsFor(card.type);
  return `
  <input type="text" placeholder="Company / contact (optional)" value="${esc(card.company)}" onchange="card.company=this.value;persistCard()">
- <div class="label">The Gauntlet — tap to cycle: \u2014 \u2717 ~ \u2713</div>
- <div class="card">${STEPS.map((s,i)=>`
+ <div class="label">Call type</div>
+ ${chips(CALL_TYPES,card.type,"setCardType")}
+ <div class="label">${isMeeting?"The Meeting Anatomy":"The Gauntlet"} — tap to cycle: \u2014 \u2717 ~ \u2713</div>
+ <div class="card">${steps.map((s,i)=>`
   <div class="steprow" onclick="cycleStep(${i})">
    <div style="font-size:14px;color:${card.steps[i]?"var(--ink)":"var(--muted)"}">${i+1}. ${s}</div>
    <div class="stepmark" style="color:${STEP_COLORS[card.steps[i]]}">${STEP_MARKS[card.steps[i]]}</div></div>`).join("")}
  </div>
- <div class="label">Pattern interrupt enthusiasm</div>
+ ${isMeeting?`<div class="label">The five pointers — which gates did you actually clear?</div>
+ ${chips(POINTERS,card.pointers,"togglePointer",true)}
+ <div class="sub" style="margin-top:6px">Unclear pointers are where ghosts come from.</div>`:""}
+ <div class="label">${isMeeting?"Opening energy":"Pattern interrupt enthusiasm"}</div>
  ${scale(card.enthusiasm,"setEnth")}
  <div class="label">The three sins</div>
  <div class="card">
@@ -307,6 +318,8 @@ function renderCard(){
    <div style="color:var(--gold);font-size:12px">\u2192 ${esc(c.oneThing)}</div></div>`).join("")}</div>`:""}`;
 }
 function cycleStep(i){card.steps[i]=(card.steps[i]+1)%4;persistCard();render();}
+function setCardType(v){if(card.type===v)return;card.type=v;card.steps=Array(10).fill(0);card.pointers=[];persistCard();render();}
+function togglePointer(v){card.pointers=card.pointers.includes(v)?card.pointers.filter(x=>x!==v):[...card.pointers,v];persistCard();render();}
 function setEnth(n){card.enthusiasm=card.enthusiasm===n?0:n;persistCard();render();}
 function sinCrab(v){card.sins.crabwalk=card.sins.crabwalk===v?null:v;persistCard();render();}
 function sinBeg(v){card.sins.begged=card.sins.begged===v?null:v;persistCard();render();}
@@ -405,13 +418,12 @@ function corrChart(days){
  <div style="font-size:11px;color:var(--muted)"><span style="color:#C22A3A">\u25CF</span> behaviour rank &nbsp; <span style="color:#D9A441">\u25CF</span> how I feel about myself \u2014 watch them move together.</div>`;
 }
 
-function gauntletMastery(days){
- const cards=allCardsChrono(days).map(x=>x.c);
+function masteryBlock(cards,stepNames){
  if(!cards.length)return `<div class="sub">File cards and this becomes your methodology mastery map: nailed-rate per step, with a trend arrow once you have 6+ cards.</div>`;
  const half=Math.floor(cards.length/2);
  const older=cards.slice(0,half),recent=cards.slice(half);
  const rate=(set,i)=>{const r=set.filter(c=>c.steps[i]>0);if(!r.length)return null;return r.filter(c=>c.steps[i]===3).length/r.length;};
- return STEPS.map((s,i)=>{
+ return stepNames.map((s,i)=>{
   const all=rate(cards,i);
   if(all===null)return `<div class="statline"><span style="color:var(--muted)">${i+1}. ${s}</span><span style="color:var(--muted)">not reached yet</span></div>`;
   let arrow="";
@@ -422,6 +434,15 @@ function gauntletMastery(days){
   const pct=Math.round(all*100);
   return `<div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>${i+1}. ${s}</span><span>${pct}% nailed${arrow}</span></div>
    <div class="track" style="margin-top:3px"><div class="fill" style="width:${pct}%;background:${pct>=70?"var(--green)":pct>=40?"var(--gold)":"var(--crimson)"}"></div></div></div>`;
+ }).join("");
+}
+function pointerStats(meetingCards){
+ if(!meetingCards.length)return "";
+ return `<div class="label">Five pointers — clear rate</div>`+POINTERS.map(p=>{
+  const n=meetingCards.filter(c=>(c.pointers||[]).includes(p)).length;
+  const pct=Math.round(100*n/meetingCards.length);
+  return `<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:12px"><span>${p}</span><span style="color:var(--muted)">${pct}%</span></div>
+   <div class="track" style="margin-top:2px"><div class="fill" style="width:${pct}%;background:${pct>=70?"var(--green)":"var(--gold)"}"></div></div></div>`;
  }).join("");
 }
 
@@ -503,10 +524,16 @@ function renderHist(){
   const has=!!dayMap[key];const closed=has&&dayMap[key].dusk&&dayMap[key].dusk.closed;
   cal+=`<div class="${closed?"closed":""} ${key===todayKey()?"today":""}" ${has?`style="cursor:pointer" onclick="openDay('${key}')"`:""}>${dd}</div>`;
  }
+ const coldCards=cardsAll.filter(c=>c.type!=="Sales meeting");
+ const meetCards=cardsAll.filter(c=>c.type==="Sales meeting");
  return `
- <div class="card"><div class="cardtitle">Gauntlet Mastery</div>
+ <div class="card"><div class="cardtitle">Cold Call Mastery</div>
   <div class="sub">Nailed-rate per step. This is the methodology, measured. Arrows compare recent cards to earlier ones.</div>
-  ${gauntletMastery(days)}</div>
+  ${masteryBlock(coldCards,STEPS)}</div>
+ ${meetCards.length?`<div class="card"><div class="cardtitle">Meeting Mastery</div>
+  <div class="sub">The meeting anatomy, measured the same way.</div>
+  ${masteryBlock(meetCards,MEETING_STEPS)}
+  ${pointerStats(meetCards)}</div>`:""}
  ${sinsTrend(days)}
  <div class="card"><div class="cardtitle">The Correlation</div>${corrChart(days)}</div>
  <div class="card"><div class="cardtitle">Volume</div>${volumeChart(days)}</div>
@@ -530,6 +557,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2</div>
  </div>`;
 }
 
@@ -554,7 +582,8 @@ function openDay(key){
   </div>
   <div class="card"><div class="label" style="margin-top:0">Cards (${(d.cards||[]).length})</div>
    ${(d.cards||[]).map(c=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)">
-    <div style="font-size:13px"><span style="color:var(--ink)">${esc(c.time||"")}</span> ${esc(c.company||"call")} ${c.boss?`\u00B7 ${esc(c.boss)} (${esc(c.bossResult||"?")})`:""} ${c.driver?`\u00B7 hooked: ${esc(c.driver)}`:""}</div>
+    <div style="font-size:13px"><span style="color:var(--ink)">${esc(c.time||"")}</span> ${esc(c.type||"Cold call")} \u00B7 ${esc(c.company||"call")} ${c.boss?`\u00B7 ${esc(c.boss)} (${esc(c.bossResult||"?")})`:""} ${c.driver?`\u00B7 hooked: ${esc(c.driver)}`:""}</div>
+    ${(c.pointers||[]).length?`<div style="font-size:11px;color:var(--muted)">pointers cleared: ${c.pointers.map(esc).join(", ")}</div>`:""}
     <div style="font-family:var(--display);font-size:14px;letter-spacing:3px;color:var(--muted)">${marks(c)}</div>
     ${row("Bait",c.bait)}${row("Ben's line",c.ben)}${row("Martian fact",c.fact)}
     <div style="color:var(--gold);font-size:12px">\u2192 ${esc(c.oneThing||"")}</div></div>`).join("")||`<div class="sub">No cards this day.</div>`}
