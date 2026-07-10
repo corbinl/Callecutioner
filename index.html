@@ -129,6 +129,27 @@ const NC_STATES=["Relaxed","Comfortable","Alert","Eager","Energized","Excited","
 const PERMISSIONS=["take my time","make mistakes","rely on myself","finish + succeed","feel + be open"];
 const DRIVER_NOTES={"Hurry Up":"racing the pitch, talking over silence \u2192 permission to take your time","Be Perfect":"script paralysis, avoiding dials \u2192 permission to make mistakes","Please Me":"THE BEGGING + CRABWALK ENGINE \u2192 permission to rely on yourself","Try Hard":"grinding with no closes \u2192 permission to finish and succeed","Be Strong":"armor up, zero curiosity \u2192 permission to feel and be open","Natural Child":"authentic, curious, playful. your pattern interrupt and real enthusiasm live here","Nurturing Parent":"genuinely helping without needing them to like you. care, not begging","Adult":"facts, questions, disqualifying. here and now, no old tape running"};
 const DRIVER_GUIDE={"Hurry Up":{cmd:"Go faster, don't waste time",dial:"racing the pitch, talking over the silence",perm:"take my time"},"Be Perfect":{cmd:"Don't screw up, get it exactly right",dial:"I'll fumble the script and sound stupid",perm:"make mistakes"},"Please Me":{cmd:"Don't be a bother, keep them happy, be liked",dial:"I'll annoy them, I'm interrupting, they'll think I'm a nuisance",perm:"rely on myself"},"Try Hard":{cmd:"Effort is what matters, straining is virtue",dial:"grinding hard, never actually closing",perm:"finish + succeed"},"Be Strong":{cmd:"Don't show anything, armor up",dial:"zero curiosity, robotic, no feeling",perm:"feel + be open"}};
+const DEFAULT_SCRIPT=[
+"Honest, permission-based opener. Name the cold call, ask for 30 seconds.\ne.g. You don't know me and this is a cold call. Give me 30 seconds and then throw me off the phone?",
+"About THEM, in their shoes. Three problems, each as: they're [feeling] because [problem we solve].\n1. they're [frustrated / anxious / annoyed] because [problem 1]\n2. they're [feeling] because [problem 2]\n3. they're [feeling] because [problem 3]\n\nRaw material to convert:\n- save up to 4% on currency exchange (FOMO they don't even know they have)\n- when the market moves in their favour, timely calls from a trader save even more\n- a currency strategy could save tens of thousands",
+"But I bet you're going to tell me you don't deal with any currency exchange, or you don't import or export, or you handle FX yourself and don't think anyone could do it better.",
+"Yes or no.\nIf yes: of those, which one, if you could solve it, would you want solved?\nIs it important to you?",
+"Look, I've taken more than my 30 seconds. Is it okay if we keep talking for another minute?",
+"They've said it's important. Now grind:\n- Did you know it was an issue?\n- How long have you known?\n- Was it an issue last year?\n- If you do nothing, will it be an issue next year?\n- So it's probably an issue this year too?\nPast / present / future cost x3 (via rate comparison) = the $30-50k they could add straight to their bottom line.",
+"Self-check: am I going sideways to dodge the hard question? Stop. Ask it straight.",
+"Real curiosity, not an interrogation. Ask questions that show you know their world better than they do. Build these in the Objections tab.",
+"Invite them to the next step. They have to want in. Don't drag them.",
+"Give them one more out before booking. Only the willing survive it.",
+"Isn't there anyone you know as lucky or unlucky as you who doesn't have an incredible trader? Someone great, maybe a competitor of yours?"];
+const DEFAULT_OBJECTIONS=[
+{trigger:"How do you make your money?",response:""},
+{trigger:"Is it safe? Are you insured / regulated?",response:""},
+{trigger:"How come I've never heard of you?",response:""},
+{trigger:"What strategies do you use to save clients money?",response:""},
+{trigger:"What documents / information will I need to provide?",response:""},
+{trigger:"What are the typical hiccups that happen?",response:""},
+{trigger:"Timelines? Delays on first payments and debits?",response:""},
+{trigger:"Is it easy?",response:""}];
 
 // ================= STATE =================
 const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;};
@@ -149,9 +170,14 @@ day.dusk=Object.assign(emptyDay().dusk,day.dusk||{});
 day.cards=day.cards||[];
 let card=load("fx-carddraft",emptyCard());
 let tab=load("fx-tab","hunt");
+let script=load("fx-script",DEFAULT_SCRIPT.slice());
+let objections=load("fx-objections",DEFAULT_OBJECTIONS.map(o=>({...o})));
+let huntView="tallies";
 
 const persistDay=()=>save("fx-day-"+todayKey(),day);
 const persistCard=()=>save("fx-carddraft",card);
+const persistScript=()=>save("fx-script",script);
+const persistObjections=()=>save("fx-objections",objections);
 
 // ================= XP ENGINE =================
 function dayXP(d){
@@ -264,10 +290,13 @@ function completeDawn(){if(day.dawn.complete)return;day.dawn.complete=true;persi
 
 // ================= HUNT =================
 function renderHunt(){
+ const seg=`<div class="chips" style="margin-bottom:12px">${[["tallies","Tallies"],["script","Script"],["objections","Objections"]].map(([k,l])=>`<div class="chip ${huntView===k?"on":""}" onclick="setHuntView('${k}')">${l}</div>`).join("")}</div>`;
+ if(huntView==="script")return seg+renderScript();
+ if(huntView==="objections")return seg+renderObjections();
  const t=day.tallies;
  const noProg=t.nos%10;
  const quests=day.dawn.quests.filter(Boolean);
- return `
+ return seg+`
  <div class="grid2">${TALLIES.map(b=>`
   <div class="tally" onclick="bump('${b.key}',${b.xp})">
    <div class="trow"><div class="tname">${b.label}</div><div class="tcount">${t[b.key]}</div></div>
@@ -287,6 +316,29 @@ function bump(key,xp){
  else floatXP("+"+xp);
  persistDay();render();
 }
+function setHuntView(v){huntView=v;render();window.scrollTo(0,0);}
+function renderScript(){
+ return `
+ <div class="sub" style="margin-bottom:8px">Your gauntlet, in your words. Read it top to bottom on a call. Edit freely, it saves to this phone, no deploy needed. The 11 steps match your Card review.</div>
+ ${STEPS.map((s,i)=>`
+  <div class="label" style="margin-top:14px">${i+1}. ${esc(s)}</div>
+  <textarea rows="3" onchange="script[${i}]=this.value;persistScript()" placeholder="your words for step ${i+1}">${esc(script[i]||"")}</textarea>`).join("")}`;
+}
+function renderObjections(){
+ return `
+ <div class="sub" style="margin-bottom:8px">Ben's sticky-note wall. What they say, and your answer, ideally a question back. Listen between the lines. Add one the moment it comes up on a call.</div>
+ ${objections.map((o,i)=>`
+  <div class="card">
+   <div class="label" style="margin-top:0">They say / ask</div>
+   <textarea rows="2" onchange="objections[${i}].trigger=this.value;persistObjections()" placeholder="what they say">${esc(o.trigger||"")}</textarea>
+   <div class="label">You respond (answer with a question)</div>
+   <textarea rows="2" onchange="objections[${i}].response=this.value;persistObjections()" placeholder="your response / the question back">${esc(o.response||"")}</textarea>
+   <div class="chip" style="display:inline-block;margin-top:8px;color:var(--crimson);border-color:var(--crimsondim)" onclick="delObjection(${i})">Delete</div>
+  </div>`).join("")}
+ <button class="cta ghost" onclick="addObjection()">Add objection</button>`;
+}
+function addObjection(){objections.push({trigger:"",response:""});persistObjections();render();}
+function delObjection(i){if(!confirm("Delete this objection?"))return;objections.splice(i,1);persistObjections();render();}
 
 // ================= CARD =================
 function renderCard(){
@@ -592,7 +644,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
-  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.5</div>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.6</div>
  </div>`;
 }
 
