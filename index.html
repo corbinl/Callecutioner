@@ -208,6 +208,7 @@ if(questions===null){questions=DEFAULT_QUESTIONS.map(o=>({...o}));save("fx-quest
 let discovery=load("fx-discovery",null);
 if(discovery===null){discovery=DEFAULT_DISCOVERY.map(o=>({...o}));save("fx-discovery",discovery);}
 let huntView="tallies";
+let qView="theyask";
 
 const persistDay=()=>save("fx-day-"+todayKey(),day);
 const persistCard=()=>save("fx-carddraft",card);
@@ -355,6 +356,7 @@ function bump(key,xp){
  persistDay();render();
 }
 function setHuntView(v){huntView=v;render();window.scrollTo(0,0);}
+function setQView(v){qView=v;render();window.scrollTo(0,0);}
 function renderScript(){
  return `
  <div class="sub" style="margin-bottom:8px">Your gauntlet, in your words. Read it top to bottom on a call. Edit freely, it saves to this phone, no deploy needed. The 11 steps match your Card review.</div>
@@ -378,19 +380,8 @@ function renderObjections(){
 function addObjection(){objections.push({trigger:"",response:""});persistObjections();render();}
 function delObjection(i){if(!confirm("Delete this objection?"))return;objections.splice(i,1);persistObjections();render();}
 function renderQuestions(){
- return `
- <div class="cardtitle" style="font-size:15px">They ask me</div>
- <div class="sub" style="margin-bottom:8px">Questions clients should be asking you. They surface later as a stall, so have a crisp answer ready.</div>
- ${questions.map((o,i)=>`
-  <div class="card">
-   <div class="label" style="margin-top:0">They ask</div>
-   <textarea rows="2" onchange="questions[${i}].trigger=this.value;persistQuestions()" placeholder="the question">${esc(o.trigger||"")}</textarea>
-   <div class="label">Your answer</div>
-   <textarea rows="2" onchange="questions[${i}].response=this.value;persistQuestions()" placeholder="your answer">${esc(o.response||"")}</textarea>
-   <div class="chip" style="display:inline-block;margin-top:8px;color:var(--crimson);border-color:var(--crimsondim)" onclick="delQuestion(${i})">Delete</div>
-  </div>`).join("")}
- <button class="cta ghost" onclick="addQuestion()">Add question</button>
- <div class="cardtitle" style="font-size:15px;margin-top:24px">I ask them</div>
+ const sub=`<div class="chips" style="margin-bottom:12px">${[["theyask","They ask me"],["iask","I ask them"]].map(([k,l])=>`<div class="chip ${qView===k?"on":""}" onclick="setQView('${k}')">${l}</div>`).join("")}</div>`;
+ if(qView==="iask")return sub+`
  <div class="sub" style="margin-bottom:8px">Your discovery questions. Don't pitch, ask. Make them feel their own situation and see that better is possible. Know their world better than they do.</div>
  ${discovery.map((o,i)=>`
   <div class="card">
@@ -401,6 +392,17 @@ function renderQuestions(){
    <div class="chip" style="display:inline-block;margin-top:8px;color:var(--crimson);border-color:var(--crimsondim)" onclick="delDiscovery(${i})">Delete</div>
   </div>`).join("")}
  <button class="cta ghost" onclick="addDiscovery()">Add discovery question</button>`;
+ return sub+`
+ <div class="sub" style="margin-bottom:8px">Questions clients should be asking you. They surface later as a stall, so have a crisp answer ready.</div>
+ ${questions.map((o,i)=>`
+  <div class="card">
+   <div class="label" style="margin-top:0">They ask</div>
+   <textarea rows="2" onchange="questions[${i}].trigger=this.value;persistQuestions()" placeholder="the question">${esc(o.trigger||"")}</textarea>
+   <div class="label">Your answer</div>
+   <textarea rows="2" onchange="questions[${i}].response=this.value;persistQuestions()" placeholder="your answer">${esc(o.response||"")}</textarea>
+   <div class="chip" style="display:inline-block;margin-top:8px;color:var(--crimson);border-color:var(--crimsondim)" onclick="delQuestion(${i})">Delete</div>
+  </div>`).join("")}
+ <button class="cta ghost" onclick="addQuestion()">Add question</button>`;
 }
 function addQuestion(){questions.push({trigger:"",response:""});persistQuestions();render();}
 function delQuestion(i){if(!confirm("Delete this question?"))return;questions.splice(i,1);persistQuestions();render();}
@@ -711,7 +713,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
-  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.8</div>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.9</div>
  </div>`;
 }
 
