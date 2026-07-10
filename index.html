@@ -38,7 +38,8 @@ h1,h2,h3,.disp{font-family:var(--display);letter-spacing:1px;text-transform:uppe
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .cardtitle{font-family:var(--display);font-size:17px;letter-spacing:1px;text-transform:uppercase}
 .sub{color:var(--muted);font-size:12px;margin:2px 0 9px}
-input[type=text],textarea{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:10px;color:var(--ink);padding:11px 12px;font-size:16px;font-family:var(--body);outline:none;margin-bottom:8px;-webkit-appearance:none}
+input[type=text],textarea{width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:10px;color:var(--ink);padding:11px 12px;font-size:16px;font-family:var(--body);outline:none;margin-bottom:8px;-webkit-appearance:none;box-sizing:border-box}
+textarea{overflow:hidden;resize:none;line-height:1.4;display:block}
 input::placeholder{color:var(--muted);opacity:.7}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{padding:8px 12px;border-radius:20px;font-size:13px;border:1px solid var(--line);color:var(--muted);cursor:pointer;user-select:none}
@@ -278,14 +279,14 @@ function renderDawn(){
  const dw=day.dawn;
  return `
  <div class="label">Three gratitudes — specific beats generic</div>
- ${dw.gratitudes.map((g,i)=>`<input type="text" placeholder="Gratitude ${i+1}" value="${esc(g)}" onchange="day.dawn.gratitudes[${i}]=this.value;persistDay()">`).join("")}
+ ${dw.gratitudes.map((g,i)=>`<textarea placeholder="Gratitude ${i+1}" onchange="day.dawn.gratitudes[${i}]=this.value;persistDay()">${esc(g)}</textarea>`).join("")}
 
  <div class="card"><div class="cardtitle">The Tape Check</div>
   <div class="sub">Meininger's four elements plus the Martian reality check. Walk them top to bottom. Each rung sets up the next.</div>
 
   <div class="label">1. The tape, word for word</div>
   <div class="sub">Name the feeling first ("I don't want to dial"). Then finish it: "...because ____". That because-clause is the tape.</div>
-  <input type="text" placeholder="...because I'll mess it up and look like a fool" value="${esc(dw.thought)}" onchange="day.dawn.thought=this.value;persistDay()">
+  <textarea placeholder="...because I'll mess it up and look like a fool" onchange="day.dawn.thought=this.value;persistDay()">${esc(dw.thought)}</textarea>
 
   <div class="label">2. The driver pushing the tape</div>
   <div class="sub">Which of the 5 old commands makes you write a tape like that? Tap one, then read its tell.</div>
@@ -294,11 +295,11 @@ function renderDawn(){
 
   <div class="label">3. The justifications it hides in</div>
   <div class="sub">The responsible-sounding excuses that happen to delay the dial. If it sounds smart and keeps you off the phone, it's a justification.</div>
-  <input type="text" placeholder="not ready, need to practice, too tired, better list first..." value="${esc(dw.justif)}" onchange="day.dawn.justif=this.value;persistDay()">
+  <textarea placeholder="not ready, need to practice, too tired, better list first..." onchange="day.dawn.justif=this.value;persistDay()">${esc(dw.justif)}</textarea>
 
   <div class="label">4. The Martian view</div>
   <div class="sub">Facts only, zero story. What would a Martian with no opinion actually see and hear?</div>
-  <input type="text" placeholder="a person picks up, hears a voice, says words back" value="${esc(dw.martian)}" onchange="day.dawn.martian=this.value;persistDay()">
+  <textarea placeholder="a person picks up, hears a voice, says words back" onchange="day.dawn.martian=this.value;persistDay()">${esc(dw.martian)}</textarea>
 
   <div class="label">5. The permission I grant myself</div>
   <div class="sub">The counter-command that disarms the driver. Step 2's tell names the matching one.</div>
@@ -314,7 +315,7 @@ function renderDawn(){
 
  <div class="label">Today's three quests — behaviours only, 100% yours</div>
  <div class="sub">Write each as one behaviour you can honestly tick yes or no. You'll check them off tonight at Dusk.</div>
- ${dw.quests.map((q,i)=>`<input type="text" placeholder="Quest ${i+1} · e.g. throw a pattern interrupt on every pickup" value="${esc(q)}" onchange="day.dawn.quests[${i}]=this.value;persistDay()">`).join("")}
+ ${dw.quests.map((q,i)=>`<textarea placeholder="Quest ${i+1} · e.g. throw a pattern interrupt on every pickup" onchange="day.dawn.quests[${i}]=this.value;persistDay()">${esc(q)}</textarea>`).join("")}
 
  <div class="label">"When" is the only relevant question. First dial at:</div>
  <input type="text" placeholder="e.g. 8:30" value="${esc(dw.firstDial)}" onchange="day.dawn.firstDial=this.value;persistDay()">
@@ -414,7 +415,7 @@ function renderCard(){
  const isMeeting=card.type==="Sales meeting";
  const steps=stepsFor(card.type);
  return `
- <input type="text" placeholder="Company / contact (optional)" value="${esc(card.company)}" onchange="card.company=this.value;persistCard()">
+ <textarea placeholder="Company / contact (optional)" onchange="card.company=this.value;persistCard()">${esc(card.company)}</textarea>
  <div class="label">Call type</div>
  ${chips(CALL_TYPES,card.type,"setCardType")}
  <div class="label">${isMeeting?"Opening energy":"Pattern interrupt enthusiasm"}</div>
@@ -459,14 +460,14 @@ function renderCard(){
  </details>
  <details><summary>Deep autopsy (optional)</summary>
   <div class="label">The bait — what pulled the tape?</div>
-  <input type="text" value="${esc(card.bait)}" onchange="card.bait=this.value;persistCard()" placeholder="what they said or did">
+  <textarea onchange="card.bait=this.value;persistCard()" placeholder="what they said or did">${esc(card.bait)}</textarea>
   <div class="label">What would Ben have said?</div>
-  <input type="text" value="${esc(card.ben)}" onchange="card.ben=this.value;persistCard()" placeholder="the line you'll steal">
+  <textarea onchange="card.ben=this.value;persistCard()" placeholder="the line you'll steal">${esc(card.ben)}</textarea>
   <div class="label">Martian fact — what a microphone would have recorded</div>
-  <input type="text" value="${esc(card.fact)}" onchange="card.fact=this.value;persistCard()" placeholder="facts, not story">
+  <textarea onchange="card.fact=this.value;persistCard()" placeholder="facts, not story">${esc(card.fact)}</textarea>
  </details>
  <div class="label">The One Thing — on my very next dial I will:</div>
- <input type="text" placeholder="One behaviour. Next dial. Not tomorrow." value="${esc(card.oneThing)}" onchange="card.oneThing=this.value;persistCard()">
+ <textarea placeholder="One behaviour. Next dial. Not tomorrow." onchange="card.oneThing=this.value;persistCard()">${esc(card.oneThing)}</textarea>
  <button class="cta" onclick="fileCard()">File the card (+5)</button>
  ${day.cards.length?`<div class="card" style="margin-top:14px"><div class="label" style="margin-top:0">Filed today (${day.cards.length})</div>
   ${day.cards.map((c,i)=>`<div style="font-size:13px;color:var(--muted);padding:5px 0;${i<day.cards.length-1?"border-bottom:1px solid var(--line)":""}">
@@ -511,16 +512,16 @@ function renderDusk(){
    <div class="chip ${dk.cycle==="N"?"on ok":""}" onclick="setCycle('N')">N</div></div>
   ${dk.cycle==="Y"?`
    <div class="label">What was I actually hungry for?</div>
-   <input type="text" placeholder="interest? connection? power? rest?" value="${esc(dk.hungryFor)}" onchange="day.dusk.hungryFor=this.value;persistDay()">
+   <textarea placeholder="interest? connection? power? rest?" onchange="day.dusk.hungryFor=this.value;persistDay()">${esc(dk.hungryFor)}</textarea>
    <div class="label">How I take my power back</div>
-   <input type="text" placeholder="permit yourself to feel powerful. redecide." value="${esc(dk.reclaim)}" onchange="day.dusk.reclaim=this.value;persistDay()">
+   <textarea placeholder="permit yourself to feel powerful. redecide." onchange="day.dusk.reclaim=this.value;persistDay()">${esc(dk.reclaim)}</textarea>
    <div class="chip ${dk.cycleBroke?"on":""}" style="display:inline-block;margin-top:10px" onclick="toggleBroke()">I broke the cycle in the moment (+20)</div>`:""}
  </div>
  <div class="label">How do I feel about myself right now?</div>
  ${scale(dk.feel,"setFeel")}
  <div style="color:var(--muted);font-size:12px;margin-top:8px">Island score (roles stripped away): <span style="color:var(--gold);font-family:var(--display);font-size:16px">9</span> — that one doesn't move.</div>
  <div class="label">The correlation I notice between behaviours and how I feel</div>
- <input type="text" placeholder="behaviours done vs. feeling — what moved together?" value="${esc(dk.correlation)}" onchange="day.dusk.correlation=this.value;persistDay()">
+ <textarea placeholder="behaviours done vs. feeling — what moved together?" onchange="day.dusk.correlation=this.value;persistDay()">${esc(dk.correlation)}</textarea>
  <div class="card" style="margin-top:16px;text-align:center">
   <div style="color:var(--muted);font-size:12px">XP earned today</div>
   <div style="font-family:var(--display);font-size:40px;color:var(--gold)">${dayXP(day)}</div>
@@ -713,7 +714,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
-  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.9</div>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.10</div>
  </div>`;
 }
 
@@ -814,7 +815,10 @@ function closeRules(e){$("modal").style.display="none";}
 function render(){
  renderHeader();renderTabs();
  $("app").innerHTML=tab==="dawn"?renderDawn():tab==="hunt"?renderHunt():tab==="card"?renderCard():tab==="dusk"?renderDusk():renderHist();
+ document.querySelectorAll("#app textarea").forEach(autoGrow);
 }
+function autoGrow(ta){ta.style.height="auto";ta.style.height=ta.scrollHeight+"px";}
+document.addEventListener("input",e=>{if(e.target&&e.target.tagName==="TEXTAREA")autoGrow(e.target);});
 render();
 if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
 </script>
