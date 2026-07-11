@@ -1,5 +1,5 @@
-const CACHE = "fx-v14";
-const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-180.png", "./icon-512.png"];
+const CACHE = "fx-v15";
+const ASSETS = ["./", "./index.html", "./content.js", "./manifest.json", "./icon-180.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));

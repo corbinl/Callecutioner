@@ -103,10 +103,14 @@ summary{color:var(--muted);font-size:12px;cursor:pointer;text-transform:uppercas
 <div id="modal" onclick="closeRules(event)"><div class="inner" id="modalinner" onclick="event.stopPropagation()"></div></div>
 <div id="tabbar"><div class="inner" id="tabinner"></div></div>
 
+<script src="./content.js"></script>
 <script>
 "use strict";
 // ================= CONSTANTS =================
 const RANKS=[["Squire of the Spread",0],["Apprentice Headsman",500],["Pin Puller",1500],["Monster Hunter",3000],["Vampire Slayer",5000],["Grinder of Souls",8000],["The Executioner's Hand",12000],["THE FOREXECUTIONER",20000]];
+// Mastery track (The Forge) — separate ladder, never mixes with call XP.
+const MASTERY_RANKS=[["Blunt Iron",0],["Whetted Edge",250],["Tempered Steel",750],["Razor's Edge",1500],["Master Smith",3000],["The Forgemaster",6000]];
+const DRILL_INTERVALS=[0,1,2,4,7,14]; // Leitner box 1..5 → days until due
 const TALLIES=[
  {key:"dials",label:"Dial",xp:1,hint:"every swing counts"},
  {key:"dm",label:"DM Convo",xp:10,hint:"decision maker reached"},
@@ -186,7 +190,7 @@ const todayKey=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.get
 const emptyDay=()=>({dawn:{gratitudes:["","",""],thought:"",driver:null,justif:"",martian:"",permission:null,ncStates:[],quests:["","",""],firstDial:"",complete:false},
  tallies:{dials:0,dm:0,pitch:0,grinder:0,pin:0,meeting:0,nos:0,noBonuses:0},cards:[],
  dusk:{questsDone:[false,false,false],behaviourRank:0,feel:0,cycle:null,cycleBroke:false,hungryFor:"",reclaim:"",correlation:"",closed:false,lowDay:false}});
-const emptyCard=()=>({type:"Cold call",company:"",steps:Array(11).fill(0),pointers:[],enthusiasm:0,sins:{crabwalk:null,begged:null,iFocused:null},boss:null,bossResult:null,driver:null,bait:"",ben:"",fact:"",oneThing:"",time:""});
+const emptyCard=()=>({type:"Cold call",company:"",steps:Array(11).fill(0),pointers:[],enthusiasm:0,sins:{crabwalk:null,begged:null,iFocused:null},mistakes:{talkedTooMuch:null,pitchedEarly:null,priceNoContext:null,pushedTooSoon:null,didntListen:null},weakFund:null,boss:null,bossResult:null,driver:null,bait:"",ben:"",fact:"",oneThing:"",time:""});
 
 function load(key,fallback){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback;}catch(e){return fallback;}}
 function save(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){toast("Storage error. Export your data.");}}
@@ -213,6 +217,17 @@ let discovery=load("fx-discovery",null);
 if(discovery===null){discovery=DEFAULT_DISCOVERY.map(o=>({...o}));save("fx-discovery",discovery);}
 let huntView="tallies";
 let qView="theyask";
+// ---- The Forge (mastery track) state ----
+const emptyMastery=()=>({xp:0,drillState:{},quests:{},questsAwarded:{},sparDone:0,sparGot:0,oneThingLog:[],pinDismissed:[]});
+let mastery=Object.assign(emptyMastery(),load("fx-mastery",{}));
+mastery.drillState=mastery.drillState||{};mastery.quests=mastery.quests||{};mastery.questsAwarded=mastery.questsAwarded||{};mastery.oneThingLog=mastery.oneThingLog||[];mastery.pinDismissed=mastery.pinDismissed||[];
+let forgeView=load("fx-forgeview","library");
+let forgeSession=null;      // open session id in Library
+let forgeQuestFilter="top"; // "top" (highest-leverage) | "all"
+let drillQueue=null,drillIdx=0,drillShow=false,drillRight=0;   // flashcard session
+let orderPool=null,orderPicked=null,orderErrors=0,orderKind="gauntlet"; // step-order drill
+let sparItem=null,sparShow=false;                              // objection sparring
+let omegaLeft=0,omegaTimer=null;                               // 60s rehearsal timer
 
 const persistDay=()=>save("fx-day-"+todayKey(),day);
 const persistCard=()=>save("fx-carddraft",card);
@@ -220,6 +235,7 @@ const persistScript=()=>save("fx-script",script);
 const persistObjections=()=>save("fx-objections",objections);
 const persistQuestions=()=>save("fx-questions",questions);
 const persistDiscovery=()=>save("fx-discovery",discovery);
+const persistMastery=()=>save("fx-mastery",mastery);
 
 // ================= XP ENGINE =================
 function dayXP(d){
@@ -234,6 +250,21 @@ function dayXP(d){
 }
 const rankFor=xp=>{let r=RANKS[0];for(const rk of RANKS)if(xp>=rk[1])r=rk;return r;};
 const nextRank=xp=>RANKS.find(r=>r[1]>xp)||null;
+
+// ---- Mastery XP (The Forge) — completely separate from dayXP/fx-meta.
+// Behaviours only: completed reps, never reading. Anti-avoidance governor:
+// full rate only on days with dials logged; half rate on zero-dial days,
+// so sharpening the axe never outranks swinging it. Belief follows behavior.
+const masteryRankFor=xp=>{let r=MASTERY_RANKS[0];for(const rk of MASTERY_RANKS)if(xp>=rk[1])r=rk;return r;};
+const masteryNextRank=xp=>MASTERY_RANKS.find(r=>r[1]>xp)||null;
+function masteryAward(base,label){
+ const full=day.tallies.dials>0;
+ const amt=full?base:Math.max(1,Math.floor(base/2));
+ mastery.xp+=amt;persistMastery();buzz();floatXP("+"+amt+" ⚔");
+ if(!full)toast(`${label} +${amt} mastery XP · half rate, no dials yet today.`);
+ return amt;
+}
+const addDays=(key,n)=>{const[y,m,d]=key.split("-").map(Number);const dt=new Date(y,m-1,d+n);return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;};
 
 // ================= HELPERS =================
 const $=id=>document.getElementById(id);
@@ -256,7 +287,7 @@ function renderHeader(){
   <div><div class="xpnum">${total.toLocaleString()} <small>XP</small></div>
   <div class="streak">${meta.streak>0?`\uD83D\uDD25 ${meta.streak}-day streak`:"start a streak"}</div></div></div>${bar}`;
 }
-const TABS=[["dawn","Dawn"],["hunt","Hunt"],["card","Card"],["dusk","Dusk"],["hist","Ledger"]];
+const TABS=[["dawn","Dawn"],["hunt","Hunt"],["card","Card"],["forge","Forge"],["dusk","Dusk"],["hist","Ledger"]];
 function renderTabs(){$("tabinner").innerHTML=TABS.map(([k,l])=>`<div class="tab ${tab===k?"on":""}" onclick="setTab('${k}')">${l}</div>`).join("");}
 function setTab(k){tab=k;save("fx-tab",k);render();window.scrollTo(0,0);}
 
@@ -339,7 +370,16 @@ function renderHunt(){
  const t=day.tallies;
  const noProg=t.nos%10;
  const quests=day.dawn.quests.filter(Boolean);
+ const pin=currentOneThing();
  return seg+`
+ ${pin?`<div class="card" style="margin-bottom:12px;border-color:var(--gold)">
+  <div class="label" style="margin-top:0">The One Thing — this dial</div>
+  <div style="font-size:15px;color:var(--gold);margin-top:4px">${esc(pin.text)}</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+   <div class="sub" style="margin:0">from your ${esc(pin.from)} card</div>
+   <div class="chip" onclick="internalizeOneThing()">⚒ internalized</div></div>
+ </div>`:""}
+ <button class="cta ghost" style="margin-bottom:12px" onclick="openCurveballs()">⚔ Curveballs — Ben's move in 3 seconds</button>
  <div class="grid2">${TALLIES.map(b=>`
   <div class="tally" onclick="bump('${b.key}',${b.xp})">
    <div class="trow"><div class="tname">${b.label}</div><div class="tcount">${t[b.key]}</div></div>
@@ -360,6 +400,42 @@ function bump(key,xp){
  persistDay();render();
 }
 function setHuntView(v){huntView=v;render();window.scrollTo(0,0);}
+// ---- One Thing pin: most recent filed card's oneThing, carried until internalized ----
+function currentOneThing(){
+ const todayCards=day.cards.filter(c=>c.oneThing&&c.oneThing.trim());
+ if(todayCards.length){const c=todayCards[todayCards.length-1];
+  if(!mastery.pinDismissed.includes(c.oneThing))return {text:c.oneThing,from:"last"};}
+ const days=allDays().filter(x=>x.date<todayKey()).reverse();
+ for(const x of days){
+  const cs=(x.d.cards||[]).filter(c=>c.oneThing&&c.oneThing.trim());
+  if(cs.length){const c=cs[cs.length-1];
+   if(!mastery.pinDismissed.includes(c.oneThing))return {text:c.oneThing,from:x.date};
+   return null;}
+ }
+ return null;
+}
+function internalizeOneThing(){
+ const pin=currentOneThing();if(!pin)return;
+ mastery.pinDismissed.push(pin.text);
+ if(mastery.pinDismissed.length>50)mastery.pinDismissed=mastery.pinDismissed.slice(-50);
+ mastery.oneThingLog.push({text:pin.text,date:todayKey()});
+ masteryAward(5,"One Thing internalized.");
+ persistMastery();render();
+}
+// ---- Curveballs: live quick-ref, built for 3-second glances between dials ----
+function openCurveballs(){
+ if(!FC){toast("content.js missing.");return;}
+ $("modalinner").innerHTML=`
+  <h2 style="font-size:22px">Curveballs</h2>
+  <div class="sub" style="margin-bottom:12px">Ben's move, verbatim where marked. Tap a situation. Tap outside to get back on the phones.</div>
+  ${FC.quickref.map(q=>`<details class="card"><summary style="font-size:15px">${esc(q.situation)}</summary>
+   ${q.moves.map(m=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)">
+    <div style="font-size:14px;color:${m.verbatim?"var(--ink)":"var(--muted)"}">${esc(m.line)}</div>
+    ${m.note?`<div style="font-size:12px;color:var(--gold);margin-top:4px">${esc(m.note)}</div>`:""}
+    <div style="font-size:10px;color:var(--muted);margin-top:3px">${m.verbatim?"verbatim · ":""}${esc(m.source)}</div></div>`).join("")}
+  </details>`).join("")}`;
+ $("modal").style.display="block";
+}
 function setQView(v){qView=v;render();window.scrollTo(0,0);}
 function renderScript(){
  return `
@@ -443,6 +519,13 @@ function renderCard(){
   ${ynRow("Begged?",card.sins.begged,"sinBeg")}
   ${ynRow('"I"-focused?',card.sins.iFocused,"sinI")}
  </div>
+ <div class="label">The five self-inflicted mistakes (S13) — objections you created</div>
+ <div class="card">
+  ${FC?FC.rubric.mistakes.map(m=>{card.mistakes=card.mistakes||{};return ynRow(m.label+"?",card.mistakes[m.key],`setMistake_${m.key}`);}).join(""):`<div class="sub">content.js missing.</div>`}
+ </div>
+ <div class="label">Weakest fundamental this call</div>
+ <div class="sub">Pick one. The Forge drills it first tomorrow.</div>
+ ${FC?chips(FC.fundamentals.map(f=>f.name),card.weakFund?fundName(card.weakFund):null,"setWeakFund"):""}
  <div class="label">Boss fight. Which boss showed up?</div>
  ${chips(BOSSES,card.boss,"setBoss")}
  ${card.boss?`<div class="label">Did YOU grind it or fold?</div>
@@ -487,12 +570,25 @@ function sinI(v){card.sins.iFocused=card.sins.iFocused===v?null:v;persistCard();
 function setBoss(v){card.boss=card.boss===v?null:v;persistCard();render();}
 function setBossResult(v){card.bossResult=card.bossResult===v?null:v;persistCard();render();}
 function setCardDriver(v){card.driver=card.driver===v?null:v;persistCard();render();}
+function setMistake(k,v){card.mistakes=card.mistakes||{};card.mistakes[k]=card.mistakes[k]===v?null:v;persistCard();render();}
+function setMistake_talkedTooMuch(v){setMistake("talkedTooMuch",v);}
+function setMistake_pitchedEarly(v){setMistake("pitchedEarly",v);}
+function setMistake_priceNoContext(v){setMistake("priceNoContext",v);}
+function setMistake_pushedTooSoon(v){setMistake("pushedTooSoon",v);}
+function setMistake_didntListen(v){setMistake("didntListen",v);}
+function setWeakFund(name){
+ const f=FC&&FC.fundamentals.find(x=>x.name===name);
+ const key=f?f.key:name;
+ card.weakFund=card.weakFund===key?null:key;persistCard();render();
+}
 function fileCard(){
  if(!card.oneThing.trim()){toast("The One Thing is the whole point. One behaviour, next dial.");return;}
  card.time=new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
  day.cards.push(card);
  const bonus=5+(card.bossResult==="grinded"?20:0)+(card.steps.filter(s=>s>0).length===10?25:0);
+ const rubricDone=card.mistakes&&Object.values(card.mistakes).every(v=>v==="Y"||v==="N");
  persistDay();buzz();floatXP("+"+bonus);toast(`Card filed. +${bonus} XP. Back on the phones.`);
+ if(rubricDone)masteryAward(5,"Full dissection.");
  card=emptyCard();persistCard();render();
 }
 
@@ -525,6 +621,7 @@ function renderDusk(){
  <div style="color:var(--muted);font-size:12px;margin-top:8px">Island score (roles stripped away): <span style="color:var(--gold);font-family:var(--display);font-size:16px">9</span> — that one doesn't move.</div>
  <div class="label">The correlation I notice between behaviours and how I feel</div>
  <textarea placeholder="behaviours done vs. feeling — what moved together?" onchange="day.dusk.correlation=this.value;persistDay()">${esc(dk.correlation)}</textarea>
+ ${forgeReport()}
  <div class="card" style="margin-top:16px;text-align:center">
   <div style="color:var(--muted);font-size:12px">XP earned today</div>
   <div style="font-family:var(--display);font-size:40px;color:var(--gold)">${dayXP(day)}</div>
@@ -532,7 +629,23 @@ function renderDusk(){
  </div>
  <button class="cta ${dk.closed?"done":""}" onclick="closeDay(false)">${dk.closed?"Day closed \u2713":"Close the day \u00B7 bank the XP"}</button>
  ${dk.closed?"":`<button class="cta ghost" onclick="closeDay(true)">Low-day close — bank + keep streak, skip the rest</button>
- <div style="color:var(--muted);font-size:11px;text-align:center;margin-top:8px">A closed bad day beats an unclosed good one. The streak measures showing up to the mirror, not performance.</div>`}`;
+ <div style="color:var(--muted);font-size:11px;text-align:center;margin-top:8px">A closed bad day beats an unclosed good one. The streak measures showing up to the mirror, not performance.</div>
+ <div class="chip" style="display:block;text-align:center;margin-top:10px" onclick="goFloorProtocol()">Floor protocol — read the Wall out loud. That's the kept promise.</div>`}`;
+}
+function goFloorProtocol(){tab="forge";forgeView="spar";save("fx-tab","forge");save("fx-forgeview","spar");render();window.scrollTo(0,0);}
+// Forge report: today's dissection loop, summarized where the day gets closed.
+function forgeReport(){
+ if(!FC)return "";
+ const ones=day.cards.filter(c=>c.oneThing&&c.oneThing.trim());
+ const weak={};day.cards.forEach(c=>{if(c.weakFund)weak[c.weakFund]=(weak[c.weakFund]||0)+1;});
+ const weakest=Object.entries(weak).sort((a,b)=>b[1]-a[1])[0];
+ if(!ones.length&&!weakest)return "";
+ return `<div class="card" style="margin-top:16px"><div class="cardtitle">Forge Report</div>
+  ${ones.length?`<div class="label" style="margin-top:6px">One Things filed today</div>${ones.map(c=>`<div style="font-size:13px;color:var(--gold);padding:2px 0">→ ${esc(c.oneThing)}</div>`).join("")}`:""}
+  ${weakest?`<div class="label">Weakest fundamental today</div>
+   <div style="font-size:14px">${esc(fundName(weakest[0]))}</div>
+   <div class="sub" style="margin-top:4px">Tomorrow's pre-block move: drill it in the Forge before the first dial.</div>`:""}
+ </div>`;
 }
 function toggleQuest(i){day.dusk.questsDone[i]=!day.dusk.questsDone[i];persistDay();render();}
 function setBRank(n){day.dusk.behaviourRank=day.dusk.behaviourRank===n?0:n;persistDay();render();}
@@ -717,7 +830,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
-  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.11</div>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.3.0</div>
  </div>`;
 }
 
@@ -764,7 +877,7 @@ function resetAll(){
   setTimeout(()=>{resetArmed=false;if($("resetbtn")){$("resetbtn").textContent="Erase all data (fresh start)";$("resetbtn").style.color="var(--crimson)";$("resetbtn").style.background="transparent";}},4000);return;}
  const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("fx-"))keys.push(k);}
  keys.forEach(k=>localStorage.removeItem(k));
- meta={bankedXP:0,streak:0,lastClosed:null};day=emptyDay();card=emptyCard();tab="hunt";resetArmed=false;
+ meta={bankedXP:0,streak:0,lastClosed:null};day=emptyDay();card=emptyCard();mastery=emptyMastery();tab="hunt";resetArmed=false;
  toast("Clean slate. Day 1 starts now.");render();
 }
 
@@ -788,9 +901,276 @@ function importData(input){
   Object.entries(data).forEach(([k,v])=>{if(k.startsWith("fx-"))localStorage.setItem(k,v);});
   meta=load("fx-meta",meta);day=Object.assign(emptyDay(),load("fx-day-"+todayKey(),{}));
   day.dawn=Object.assign(emptyDay().dawn,day.dawn||{});day.tallies=Object.assign(emptyDay().tallies,day.tallies||{});day.dusk=Object.assign(emptyDay().dusk,day.dusk||{});day.cards=day.cards||[];
+  mastery=Object.assign(emptyMastery(),load("fx-mastery",{}));
   toast("Backup restored.");render();
  }catch(e){toast("That file didn't parse. Wrong backup?");}};
  r.readAsText(f);
+}
+
+// ================= THE FORGE (mastery area, v1.3.0) =================
+// Content lives in content.js (FORGE_CONTENT). Ben verbatim where it exists;
+// paraphrase and unverified answers are marked. Sub-views: Library / Drill /
+// Spar / Quests / Progress.
+const FC=typeof FORGE_CONTENT!=="undefined"?FORGE_CONTENT:null;
+const fundName=k=>{const f=FC&&FC.fundamentals.find(x=>x.key===k);return f?f.name:k;};
+
+// ---- drill deck: recall Q&A + the Wall + fundamentals minimum standards ----
+function drillDeck(){
+ if(!FC)return [];
+ const deck=[];
+ for(const q of FC.qa)if(q.type==="recall")deck.push({id:q.id,front:`${q.session} · ${q.question}`,back:q.modelAnswer,badge:q.verified?"":"AI-drafted — verify",tag:q.session});
+ for(let i=0;i<FC.wall.length;i++){const w=FC.wall[i];
+  deck.push({id:"wall-"+i,front:`They say: “${w.objection}” — your response-questions?`,back:w.responses.map(r=>"• "+r.line+(r.source?`  (${r.source})`:"")).join("\n"),badge:"",tag:"wall"});}
+ for(const f of FC.fundamentals)deck.push({id:"fund-"+f.key,front:`Minimum standard for ${f.name}?`,back:f.minimumStandard+"\n\nMastered when: "+f.masteredWhen,badge:"",tag:f.key});
+ return deck;
+}
+function dueCards(){
+ const t=todayKey();
+ // weakest fundamental from recent cards floats its drills to the front
+ const recent=allDays().slice(-7).flatMap(x=>x.d.cards||[]);
+ const weak={};recent.forEach(c=>{if(c.weakFund)weak[c.weakFund]=(weak[c.weakFund]||0)+1;});
+ const weakest=Object.entries(weak).sort((a,b)=>b[1]-a[1])[0];
+ const due=drillDeck().filter(c=>{const s=mastery.drillState[c.id];return !s||s.due<=t;});
+ if(weakest){
+  const f=FC.fundamentals.find(x=>x.key===weakest[0]);
+  const tags=new Set([weakest[0],...((f&&f.sessions)||[])]);
+  due.sort((a,b)=>(tags.has(b.tag)?1:0)-(tags.has(a.tag)?1:0));
+ }
+ return due;
+}
+function startDrill(){drillQueue=dueCards().slice(0,10);drillIdx=0;drillShow=false;drillRight=0;render();}
+function drillReveal(){drillShow=true;render();}
+function drillRate(got){
+ const c=drillQueue[drillIdx];
+ const s=mastery.drillState[c.id]||{box:1,due:todayKey()};
+ s.box=got?Math.min(5,(s.box||1)+1):1;
+ s.due=addDays(todayKey(),DRILL_INTERVALS[s.box]);
+ mastery.drillState[c.id]=s;
+ if(got)drillRight++;
+ masteryAward(2,"Card drilled.");
+ drillIdx++;drillShow=false;
+ if(drillIdx>=drillQueue.length){
+  if(drillQueue.length>=5)masteryAward(10,"Drill session complete.");
+  toast(`Drill done: ${drillRight}/${drillQueue.length} recalled. Missed cards come back tomorrow.`);
+  drillQueue=null;
+ }
+ render();
+}
+function quitDrill(){drillQueue=null;drillShow=false;render();}
+
+// ---- step-order reconstruction (pre-flight) ----
+function startOrder(kind){
+ orderKind=kind;
+ const src=kind==="meeting"?MEETING_STEPS:STEPS;
+ orderPool=src.map((s,i)=>({s,i})).sort(()=>Math.random()-0.5);
+ orderPicked=[];orderErrors=0;render();
+}
+function orderTap(i){
+ const item=orderPool.find(x=>x.i===i);
+ if(!item)return;
+ if(i===orderPicked.length){orderPicked.push(item);orderPool=orderPool.filter(x=>x.i!==i);buzz();}
+ else orderErrors++;
+ const src=orderKind==="meeting"?MEETING_STEPS:STEPS;
+ if(orderPicked.length===src.length){
+  if(orderErrors===0)masteryAward(15,"Perfect pre-flight.");
+  else masteryAward(5,"Pre-flight done.");
+  toast(orderErrors===0?"Flawless. The process is becoming second nature.":`Rebuilt with ${orderErrors} wrong taps. Run it again before the block.`);
+  orderPool=null;orderPicked=null;
+ }
+ render();
+}
+function quitOrder(){orderPool=null;orderPicked=null;render();}
+
+// ---- objection sparring ----
+function sparDeck(){
+ if(!FC)return [];
+ const d=[];
+ for(const w of FC.wall)d.push({trigger:w.objection,reveal:w.responses.map(r=>"• "+r.line).join("\n"),src:"The Wall (Practice Plan)"});
+ for(const q of FC.quickref)for(const m of q.moves)if(m.verbatim)d.push({trigger:q.situation+" — "+q.trigger,reveal:m.line+(m.note?"\n\n"+m.note:""),src:m.source});
+ return d;
+}
+function startSpar(){const d=sparDeck();sparItem=d[Math.floor(Math.random()*d.length)];sparShow=false;render();window.scrollTo(0,0);}
+function sparReveal(){sparShow=true;render();}
+function sparRate(got){
+ mastery.sparDone++;if(got)mastery.sparGot++;
+ masteryAward(3,"Spar rep.");
+ sparItem=null;sparShow=false;render();
+}
+function startOmega(){
+ clearInterval(omegaTimer);omegaLeft=60;
+ omegaTimer=setInterval(()=>{omegaLeft--;const el=$("omegaleft");if(el)el.textContent=omegaLeft;
+  if(omegaLeft<=0){clearInterval(omegaTimer);masteryAward(5,"Omega run-through.");toast("Time. Was it fluent from memory? If not, it's not mastered yet.");render();}},1000);
+ render();
+}
+function stopOmega(){clearInterval(omegaTimer);omegaLeft=0;render();}
+
+// ---- quests ----
+function toggleForgeQuest(id){
+ mastery.quests[id]=!mastery.quests[id];
+ if(mastery.quests[id]&&!mastery.questsAwarded[id]){mastery.questsAwarded[id]=true;masteryAward(15,"Homework quest done.");}
+ persistMastery();render();
+}
+function setForgeQuestFilter(v){forgeQuestFilter=v;render();}
+
+// ---- navigation ----
+function setForgeView(v){forgeView=v;forgeSession=null;save("fx-forgeview",v);render();window.scrollTo(0,0);}
+function openForgeSession(id){forgeSession=id;render();window.scrollTo(0,0);}
+function closeForgeSession(){forgeSession=null;render();window.scrollTo(0,0);}
+
+// ---- sub-view renderers ----
+function forgeLibrary(){
+ if(forgeSession){
+  const s=FC.sessions.find(x=>x.id===forgeSession);
+  if(!s)return `<div class="sub">Session not found.</div>`;
+  if(s.stub)return `<div class="chip" onclick="closeForgeSession()" style="display:inline-block;margin-bottom:10px">← All sessions</div>
+   <div class="card"><div class="cardtitle">${esc(s.id)} — ${esc(s.theme||"")}</div><div class="sub">${esc(s.note||"No session doc for this one — its Q&A and homework still appear in Drill and Quests.")}</div></div>`;
+  return `<div class="chip" onclick="closeForgeSession()" style="display:inline-block;margin-bottom:10px">← All sessions</div>
+  <div class="cardtitle" style="font-size:20px">${esc(s.id)} — ${esc(s.theme||"")}</div>
+  <div class="sub" style="margin-bottom:10px">${esc(s.date||"")}${s.format?" · "+esc(s.format):""}</div>
+  ${(s.threads||[]).map((t,ti)=>`
+  <details class="card" style="margin-top:10px"><summary style="font-size:15px">${esc(t.title||("Thread "+(ti+1)))}${(t.fundamentals||[]).length?` <span style="color:var(--gold);font-size:11px">· ${t.fundamentals.map(fundName).map(esc).join(", ")}</span>`:""}</summary>
+   ${t.setup?`<div class="sub" style="margin-top:8px">${esc(t.setup)}</div>`:""}
+   ${(t.verbatim||[]).length?`<div class="label">Verbatim</div>${t.verbatim.map(v=>`<div style="font-size:13px;padding:4px 0"><span style="color:${v.speaker==="Benjamin"?"var(--crimson)":"var(--muted)"};font-family:var(--display);letter-spacing:1px">${esc(v.speaker)}:</span> ${esc(v.text)}</div>`).join("")}`:""}
+   ${t.breakdown?`<div class="label">Mechanical breakdown</div><div style="font-size:13px;color:var(--ink)">${esc(t.breakdown)}</div>`:""}
+   ${(t.questionBank||[]).length?`<div class="label">Drillable lines</div>${t.questionBank.map(q=>`<div style="font-size:13px;padding:3px 0;color:var(--gold)">• ${esc(q)}</div>`).join("")}`:""}
+  </details>`).join("")}`;
+ }
+ return `
+ <div class="card"><div class="cardtitle">The Six Fundamentals</div>
+  <div class="sub">Everything in the club is a variation of these. Each has a minimum standard and a mastered-when.</div>
+  ${FC.fundamentals.map(f=>`<details style="margin-top:8px"><summary style="font-size:14px;color:var(--gold)">${esc(f.name)}</summary>
+   <div style="font-size:13px;margin-top:6px">${esc(f.whatIs||"")}</div>
+   <div class="label">Minimum standard</div><div style="font-size:13px">${esc(f.minimumStandard||"")}</div>
+   <div class="label">You've mastered it when</div><div style="font-size:13px">${esc(f.masteredWhen||"")}</div>
+   ${(f.sessions||[]).length?`<div class="sub" style="margin-top:6px">Sessions: ${f.sessions.map(esc).join(", ")}</div>`:""}
+  </details>`).join("")}
+ </div>
+ <div class="card"><div class="cardtitle">Sessions</div>
+  ${FC.sessions.map(s=>`<div class="statline" style="cursor:pointer" onclick="openForgeSession('${s.id}')"><span>${esc(s.id)} · ${esc(s.theme||"")}</span><span style="color:var(--muted)">${s.stub?"stub":(s.threads||[]).length+" threads"}</span></div>`).join("")}
+ </div>
+ <details class="card"><summary>Canon caveats — read once</summary>
+  ${FC.meta.caveats.map(c=>`<div style="font-size:12px;color:var(--muted);padding:5px 0;border-bottom:1px solid var(--line)">⚠ ${esc(c)}</div>`).join("")}
+ </details>`;
+}
+function forgeDrill(){
+ if(drillQueue){
+  if(drillIdx>=drillQueue.length){drillQueue=null;return forgeDrill();}
+  const c=drillQueue[drillIdx];
+  return `
+  <div class="sub">${drillIdx+1} / ${drillQueue.length} · answer OUT LOUD before revealing</div>
+  <div class="card" style="margin-top:10px"><div style="font-size:16px">${esc(c.front)}</div>
+   ${c.badge?`<div style="color:var(--gold);font-size:11px;margin-top:6px">⚠ ${esc(c.badge)}</div>`:""}
+   ${drillShow?`<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px;font-size:14px;white-space:pre-wrap">${esc(c.back)}</div>`:""}
+  </div>
+  ${drillShow?`<div class="chips" style="margin-top:12px">
+   <div class="chip on ok" onclick="drillRate(true)" style="flex:1;text-align:center">Had it ✓</div>
+   <div class="chip on" onclick="drillRate(false)" style="flex:1;text-align:center">Missed it ✗</div></div>`
+  :`<button class="cta" onclick="drillReveal()">Reveal Ben's answer</button>`}
+  <button class="cta ghost" onclick="quitDrill()">End session</button>`;
+ }
+ const due=dueCards();
+ const deck=drillDeck();
+ const boxes=[0,0,0,0,0];
+ deck.forEach(c=>{const s=mastery.drillState[c.id];boxes[(s?s.box:1)-1]++;});
+ return `
+ <div class="card"><div class="cardtitle">Spaced Repetition</div>
+  <div class="sub">Recall answers, the Wall, and the fundamentals — miss a card and it comes back sooner; nail it and it rests. Weak spots from your recent call cards drill first.</div>
+  <div style="display:flex;gap:6px;margin-top:12px">${boxes.map((n,i)=>`<div style="flex:1;text-align:center"><div style="font-family:var(--display);font-size:20px;color:${i>=3?"var(--green)":i>=1?"var(--gold)":"var(--crimson)"}">${n}</div><div style="font-size:10px;color:var(--muted)">box ${i+1}</div></div>`).join("")}</div>
+  <button class="cta" onclick="startDrill()" ${due.length?"":"disabled style='opacity:.5'"}>${due.length?`Drill ${Math.min(10,due.length)} due cards`:"Nothing due — come back tomorrow"}</button>
+ </div>
+ <div class="card"><div class="cardtitle">Process reconstruction</div>
+  <div class="sub">Rebuild the sequence from memory, in order, before a block. Perfect run = +15.</div>
+  ${orderPool?``:`<div class="chips" style="margin-top:10px">
+   <div class="chip" onclick="startOrder('gauntlet')">The Gauntlet (11)</div>
+   <div class="chip" onclick="startOrder('meeting')">Meeting Anatomy (10)</div></div>`}
+  ${orderPool?`
+   <div class="sub" style="margin-top:10px">Tap the steps in order. ${orderErrors?`<span style="color:var(--crimson)">${orderErrors} wrong so far.</span>`:""}</div>
+   ${orderPicked.map(p=>`<div style="font-size:13px;color:var(--green);padding:2px 0">${p.i+1}. ${esc(p.s)} ✓</div>`).join("")}
+   <div class="chips" style="margin-top:8px">${orderPool.map(p=>`<div class="chip" onclick="orderTap(${p.i})">${esc(p.s)}</div>`).join("")}</div>
+   <div class="chip" style="display:inline-block;margin-top:10px;color:var(--crimson);border-color:var(--crimsondim)" onclick="quitOrder()">Abandon</div>`:""}
+ </div>`;
+}
+function forgeSpar(){
+ return `
+ ${sparItem?`
+ <div class="card"><div class="label" style="margin-top:0">They throw at you</div>
+  <div style="font-size:17px;margin-top:6px">“${esc(sparItem.trigger)}”</div>
+  <div class="sub" style="margin-top:8px">Answer OUT LOUD. Delivery is the most important part. Then compare.</div>
+  ${sparShow?`<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px;font-size:14px;white-space:pre-wrap">${esc(sparItem.reveal)}</div><div class="sub" style="margin-top:8px">${esc(sparItem.src)}</div>`:""}
+ </div>
+ ${sparShow?`<div class="chips"><div class="chip on ok" onclick="sparRate(true)" style="flex:1;text-align:center">Mine held up ✓</div><div class="chip on" onclick="sparRate(false)" style="flex:1;text-align:center">Ben's was better ✗</div></div>`
+ :`<button class="cta" onclick="sparReveal()">Reveal Ben's move</button>`}
+ <button class="cta ghost" onclick="sparItem=null;render()">Back</button>`
+ :`
+ <div class="card"><div class="cardtitle">Objection Sparring</div>
+  <div class="sub">A random curveball from the Wall + verified transcript lines. Speak your answer, then see Ben's. ${mastery.sparDone?`${mastery.sparGot}/${mastery.sparDone} held up so far.`:""}</div>
+  <button class="cta" onclick="startSpar()">Throw me one</button>
+ </div>
+ <div class="card"><div class="cardtitle">Omega — 60 seconds</div>
+  <div class="sub">Full pitch out loud against the clock (Practice Plan: the car drill). Choreographed spontaneity: memorized first, delivered like it's off the cuff.</div>
+  ${omegaLeft>0?`<div style="text-align:center;font-family:var(--display);font-size:56px;color:var(--gold)"><span id="omegaleft">${omegaLeft}</span></div>
+   <button class="cta ghost" onclick="stopOmega()">Stop</button>`
+  :`<button class="cta" onclick="startOmega()">Start 60s run-through</button>`}
+ </div>
+ <details class="card"><summary>Read the Wall (floor-day option)</summary>
+  <div class="sub" style="margin:6px 0">Your FX objection bank, every line tagged to its source session. On a floor day, reading this out loud counts as the kept promise.</div>
+  ${FC.wall.map(w=>`<div style="margin-top:10px"><div style="font-size:14px;color:var(--crimson)">“${esc(w.objection)}”</div>
+   ${w.responses.map(r=>`<div style="font-size:13px;padding:2px 0 2px 10px">• ${esc(r.line)} ${r.source?`<span style="color:var(--muted);font-size:11px">(${esc(r.source)})</span>`:""}</div>`).join("")}</div>`).join("")}
+ </details>`}`;
+}
+function forgeQuests(){
+ const hw=forgeQuestFilter==="top"
+  ?FC.highestLeverage.map((h,i)=>({id:"hl-"+(h.session||i),session:h.session,text:h.text,qualityCheck:""}))
+  :FC.homework;
+ const bySession={};hw.forEach(h=>{(bySession[h.session]=bySession[h.session]||[]).push(h);});
+ const doneCount=hw.filter(h=>mastery.quests[h.id]).length;
+ return `
+ <div class="chips" style="margin-bottom:10px">
+  <div class="chip ${forgeQuestFilter==="top"?"on":""}" onclick="setForgeQuestFilter('top')">The Short List (${FC.highestLeverage.length})</div>
+  <div class="chip ${forgeQuestFilter==="all"?"on":""}" onclick="setForgeQuestFilter('all')">Full backlog (${FC.homework.length})</div>
+ </div>
+ <div class="sub" style="margin-bottom:10px">${forgeQuestFilter==="top"?"If you only do one thing per session, do these.":"Every assignment Ben ever gave, FX-personalized."} ${doneCount}/${hw.length} done · +15 each, first completion.</div>
+ ${Object.entries(bySession).map(([sid,items])=>{
+  const s=FC.sessions.find(x=>x.id===sid);
+  const done=items.filter(h=>mastery.quests[h.id]).length;
+  return `<details class="card" ${done<items.length&&forgeQuestFilter==="top"?"open":""}><summary>${esc(sid)}${s?" · "+esc(s.theme||""):""} <span style="color:var(--muted);font-size:12px">${done}/${items.length}</span></summary>
+  ${items.map(h=>`<div class="qrow" onclick="toggleForgeQuest('${h.id}')">
+   <div class="qbox ${mastery.quests[h.id]?"on":""}">${mastery.quests[h.id]?"✓":""}</div>
+   <div style="font-size:13px;color:${mastery.quests[h.id]?"var(--muted)":"var(--ink)"}">${esc(h.text)}${h.qualityCheck?`<div style="color:var(--gold);font-size:11px;margin-top:2px">bar: ${esc(h.qualityCheck)}</div>`:""}</div></div>`).join("")}
+ </details>`;}).join("")}`;
+}
+function forgeProgress(){
+ const [mname,mbase]=masteryRankFor(mastery.xp);
+ const nxt=masteryNextRank(mastery.xp);
+ const deck=drillDeck();
+ const mastered=deck.filter(c=>(mastery.drillState[c.id]||{}).box>=4).length;
+ const qdone=Object.keys(mastery.questsAwarded).length;
+ return `
+ <div class="card" style="text-align:center">
+  <div class="sub">Mastery track — separate from call XP, by design</div>
+  <div style="font-family:var(--display);font-size:34px;color:var(--gold)">${mastery.xp.toLocaleString()} <small style="font-size:14px">⚔</small></div>
+  <div class="rank" style="margin-top:4px">${esc(mname)}</div>
+  ${nxt?`<div class="track" style="margin-top:8px"><div class="fill" style="width:${Math.min(100,(mastery.xp-mbase)/(nxt[1]-mbase)*100)}%"></div></div><div class="tonext">${(nxt[1]-mastery.xp).toLocaleString()} to ${esc(nxt[0])}</div>`:""}
+ </div>
+ <div class="card">
+  <div class="statline"><span>Cards mastered (box 4+)</span><span>${mastered} / ${deck.length}</span></div>
+  <div class="statline"><span>Homework quests done</span><span>${qdone} / ${FC.homework.length+FC.highestLeverage.length}</span></div>
+  <div class="statline"><span>Spar reps (held up)</span><span>${mastery.sparDone} (${mastery.sparGot})</span></div>
+  <div class="statline"><span>One Things internalized</span><span>${mastery.oneThingLog.length}</span></div>
+ </div>
+ ${mastery.oneThingLog.length?`<div class="card"><div class="cardtitle">Internalized</div>
+  ${mastery.oneThingLog.slice(-10).reverse().map(o=>`<div style="font-size:13px;padding:4px 0;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">${esc(o.date)}</span> ${esc(o.text)}</div>`).join("")}</div>`:""}
+ <div class="card"><div class="sub" style="margin:0">Governor: mastery XP pays full rate only on days with dials logged, half otherwise. The Forge sharpens the axe — the Hunt swings it. Never confuse the two.</div></div>
+ <details class="card"><summary>P.A.C. self-test scoring (reference)</summary>
+  <div class="sub" style="margin:6px 0">${esc(FC.pac.scoring.instructions)} ${esc(FC.pac.note)}</div>
+  ${FC.pac.scoring.columns.map(c=>`<div style="font-size:12px;padding:4px 0"><span style="color:var(--gold)">${esc(c.name)}</span><div style="color:var(--muted)">items ${c.items.join(", ")}</div></div>`).join("")}
+  <div style="font-size:12px;color:var(--muted);margin-top:6px">${esc(FC.pac.scoring.dominanceRule)}</div>
+ </details>`;
+}
+function renderForge(){
+ if(!FC)return `<div class="card"><div class="cardtitle">The Forge</div><div class="sub">content.js failed to load. Check the deploy (it must be precached in sw.js).</div></div>`;
+ const seg=`<div class="chips" style="margin-bottom:12px">${[["library","Library"],["drill","Drill"],["spar","Spar"],["quests","Quests"],["progress","Progress"]].map(([k,l])=>`<div class="chip ${forgeView===k?"on":""}" onclick="setForgeView('${k}')">${l}</div>`).join("")}</div>`;
+ return seg+(forgeView==="drill"?forgeDrill():forgeView==="spar"?forgeSpar():forgeView==="quests"?forgeQuests():forgeView==="progress"?forgeProgress():forgeLibrary());
 }
 
 // ================= RULES MODAL =================
@@ -817,7 +1197,7 @@ function closeRules(e){$("modal").style.display="none";}
 // ================= ROOT RENDER =================
 function render(){
  renderHeader();renderTabs();
- $("app").innerHTML=tab==="dawn"?renderDawn():tab==="hunt"?renderHunt():tab==="card"?renderCard():tab==="dusk"?renderDusk():renderHist();
+ $("app").innerHTML=tab==="dawn"?renderDawn():tab==="hunt"?renderHunt():tab==="card"?renderCard():tab==="forge"?renderForge():tab==="dusk"?renderDusk():renderHist();
  document.querySelectorAll("#app textarea").forEach(autoGrow);
 }
 function autoGrow(ta){ta.style.height="auto";ta.style.height=ta.scrollHeight+"px";}
