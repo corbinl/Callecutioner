@@ -152,6 +152,7 @@ const DEFAULT_QUESTIONS=[
 {trigger:"Timelines? Delays on first payments and debits?",response:""},
 {trigger:"Is it easy?",response:""}];
 const DEFAULT_OBJECTIONS=[
+{trigger:"\"What's this regarding?\" (gatekeeper)",response:"It's a cold call, I'll be straight with you. It's about the money [company] loses every time it moves currency. You're paid to filter these, so filter it: is [name] the one who owns the banking relationship, or am I better off with someone else?"},
 {trigger:"We already got a guy",response:""},
 {trigger:"We do that in house",response:""},
 {trigger:"I tried that before and it didn't work",response:""},
@@ -206,6 +207,8 @@ let questions=load("fx-questions",null);
 if(questions===null&&objections&&objections[0]&&objections[0].trigger==="How do you make your money?"){questions=objections;objections=null;save("fx-questions",questions);}
 if(objections===null){objections=DEFAULT_OBJECTIONS.map(o=>({...o}));save("fx-objections",objections);}
 if(questions===null){questions=DEFAULT_QUESTIONS.map(o=>({...o}));save("fx-questions",questions);}
+// one-time: pin the assertive gatekeeper comeback to the top of the objections wall
+if(!load("fx-obj-gk",false)){if(!objections.some(o=>/regarding/i.test(o.trigger||""))){objections.unshift({trigger:"\"What's this regarding?\" (gatekeeper)",response:"It's a cold call, I'll be straight with you. It's about the money [company] loses every time it moves currency. You're paid to filter these, so filter it: is [name] the one who owns the banking relationship, or am I better off with someone else?"});save("fx-objections",objections);}save("fx-obj-gk",true);}
 let discovery=load("fx-discovery",null);
 if(discovery===null){discovery=DEFAULT_DISCOVERY.map(o=>({...o}));save("fx-discovery",discovery);}
 let huntView="tallies";
@@ -714,7 +717,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
-  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.10</div>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.2.11</div>
  </div>`;
 }
 
