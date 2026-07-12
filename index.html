@@ -830,7 +830,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
-  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.3.0</div>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.3.1</div>
  </div>`;
 }
 
@@ -1014,6 +1014,30 @@ function setForgeQuestFilter(v){forgeQuestFilter=v;render();}
 
 // ---- navigation ----
 function setForgeView(v){forgeView=v;forgeSession=null;save("fx-forgeview",v);render();window.scrollTo(0,0);}
+// Topic search over session themes, thread titles + bodies. Updates only its
+// results div (no full render), so the input keeps focus while typing.
+function forgeSearchInput(q){
+ const box=$("forgesearchresults");if(!box)return;
+ q=(q||"").trim().toLowerCase();
+ if(q.length<3){box.innerHTML=q.length?`<div class="sub" style="margin-top:6px">Keep typing…</div>`:"";return;}
+ const hits=[];
+ for(const s of FC.sessions){
+  if(s.stub)continue;
+  const themeHit=(s.theme||"").toLowerCase().includes(q);
+  const threads=(s.threads||[]).filter(t=>
+   (t.title||"").toLowerCase().includes(q)||
+   (t.setup||"").toLowerCase().includes(q)||
+   (t.breakdown||"").toLowerCase().includes(q)||
+   (t.verbatim||[]).some(v=>(v.text||"").toLowerCase().includes(q)));
+  if(themeHit||threads.length)hits.push({s,threads:threads.length?threads:(themeHit?s.threads:[])});
+ }
+ if(!hits.length){box.innerHTML=`<div class="sub" style="margin-top:6px">Nothing in the corpus for that. Try another word.</div>`;return;}
+ box.innerHTML=hits.slice(0,6).map(h=>`
+  <div style="margin-top:8px;cursor:pointer" onclick="openForgeSession('${h.s.id}')">
+   <div style="font-size:14px;color:var(--gold)">${esc(h.s.id)} · ${esc(h.s.theme||"")}</div>
+   ${h.threads.slice(0,3).map(t=>`<div style="font-size:12px;color:var(--muted);padding:1px 0 1px 10px">↳ ${esc(t.title||"")}</div>`).join("")}
+  </div>`).join("");
+}
 function openForgeSession(id){forgeSession=id;render();window.scrollTo(0,0);}
 function closeForgeSession(){forgeSession=null;render();window.scrollTo(0,0);}
 
@@ -1044,6 +1068,10 @@ function forgeLibrary(){
    <div class="label">You've mastered it when</div><div style="font-size:13px">${esc(f.masteredWhen||"")}</div>
    ${(f.sessions||[]).length?`<div class="sub" style="margin-top:6px">Sessions: ${f.sessions.map(esc).join(", ")}</div>`:""}
   </details>`).join("")}
+ </div>
+ <div class="card"><div class="cardtitle">Find a topic</div>
+  <input type="text" placeholder="e.g. drama triangle, gatekeeper, omega, pricing" oninput="forgeSearchInput(this.value)">
+  <div id="forgesearchresults"></div>
  </div>
  <div class="card"><div class="cardtitle">Sessions</div>
   ${FC.sessions.map(s=>`<div class="statline" style="cursor:pointer" onclick="openForgeSession('${s.id}')"><span>${esc(s.id)} · ${esc(s.theme||"")}</span><span style="color:var(--muted)">${s.stub?"stub":(s.threads||[]).length+" threads"}</span></div>`).join("")}
