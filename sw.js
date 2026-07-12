@@ -1,4 +1,4 @@
-const CACHE = "fx-v16";
+const CACHE = "fx-v17";
 const ASSETS = ["./", "./index.html", "./content.js", "./manifest.json", "./icon-180.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {

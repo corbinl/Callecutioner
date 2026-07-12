@@ -93,6 +93,16 @@ svg text{font-family:var(--body)}
 details{margin-top:10px}
 summary{color:var(--muted);font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:1px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* Desktop layout. Phone (<900px) keeps the 480px column exactly as-is.
+   Wide screens: dashboard views (data-cols=2) flow cards into two columns;
+   focus views (data-cols=1) stay one column, slightly wider for reading. */
+@media(min-width:900px){
+ .hrow,.bar,#tabbar .inner{max-width:880px}
+ #modal .inner{max-width:640px}
+ body[data-cols="2"] #app{max-width:880px;column-count:2;column-gap:14px}
+ body[data-cols="2"] #app>*{break-inside:avoid}
+ body[data-cols="1"] #app{max-width:640px}
+}
 </style>
 </head>
 <body>
@@ -830,7 +840,7 @@ function renderHist(){
   <button class="cta ghost" onclick="document.getElementById('importfile').click()">Import from backup</button>
   <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
   <button class="cta ghost" id="resetbtn" style="color:var(--crimson);border-color:var(--crimsondim)" onclick="resetAll()">Erase all data (fresh start)</button>
-  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.3.1</div>
+  <div style="text-align:center;color:var(--muted);font-size:10px;margin-top:10px">Callecutioner v1.3.2</div>
  </div>`;
 }
 
@@ -1225,6 +1235,8 @@ function closeRules(e){$("modal").style.display="none";}
 // ================= ROOT RENDER =================
 function render(){
  renderHeader();renderTabs();
+ const twoCol=tab==="hist"||(tab==="forge"&&!forgeSession&&(forgeView==="library"||forgeView==="quests"||forgeView==="progress"));
+ document.body.dataset.cols=twoCol?"2":"1";
  $("app").innerHTML=tab==="dawn"?renderDawn():tab==="hunt"?renderHunt():tab==="card"?renderCard():tab==="forge"?renderForge():tab==="dusk"?renderDusk():renderHist();
  document.querySelectorAll("#app textarea").forEach(autoGrow);
 }
